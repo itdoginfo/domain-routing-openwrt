@@ -18,6 +18,8 @@ Playbook для Ansible, автоматизирующий настройку о�
 ```
 cd /etc/ansible
 git clone https://github.com/itdoginfo/ansible-openwrt-hirkn
+mv ansible-openwrt-hirkn/* .
+rm -rf ansible-openwrt-hirkn
 ```
 
 Добавить роутер в файл hosts в группу openwrt
