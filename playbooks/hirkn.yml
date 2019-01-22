@@ -1,0 +1,260 @@
+---
+
+- hosts: openwrt
+
+  remote_user: root
+  
+  roles:
+    - gekmihesg.openwrt
+
+  vars:
+    ansible_template_dir: /etc/ansible/templates/
+    wg_server_address: wg_server_ip/url
+    wg_private_key: privatekey-client
+    wg_public_key: publickey-client
+    wg_listen_port: 51820
+    wg_client_port: 51820
+    wg_client_address: 192.168.100.3/24
+
+# Packages installation
+
+  tasks:
+  - name: install wireguard
+    opkg:
+      name: wireguard
+      state: present
+    
+  - name: install curl
+    opkg:
+      name: curl
+      state: present
+  
+  - name: install ipset
+    opkg:
+      name: ipset
+      state: present
+      
+  - name: install dnscrypt
+    opkg:
+      name: dnscrypt-proxy
+      state: present
+      
+# Hirkn script configure
+      
+  - name: hirkn script copy
+    template:
+      src: "{{ ansible_template_dir }}openwrt-hirkn.j2"
+      dest: "/etc/init.d/hirkn"
+      mode: a+x
+      
+  - name: create simplink in rc.d
+    file:
+      src: "/etc/init.d/hirkn"
+      dest: "/etc/rc.d/S99hirkn"
+      state: link
+
+  - name: check string in crontab
+    shell: grep "hirkn" /etc/crontabs/root
+    register: check_cron
+      
+  - name: add script to cron
+    lineinfile:
+      path: /etc/crontabs/root
+      create: yes
+      line: "0 4 * * * /etc/init.d/hirkn"
+    when: check_cron.stdout == ""
+    
+  - name: enable and start crontab
+    service:
+      name: cron
+      state: started
+      enabled: yes
+      
+# Configure route table
+      
+  - name: route copy in hotplug
+    template:
+      src: "{{ ansible_template_dir }}openwrt-30-rknroute.j2"
+      dest: "/etc/hotplug.d/iface/30-rknroute"
+      
+  - name: Check string in rt_tables
+    shell: grep "99 vpn" /etc/iproute2/rt_tables
+    register: check_rt_tables
+      
+  - name: add route table
+    lineinfile:
+      path: /etc/iproute2/rt_tables
+      line: "99 vpn"
+    when: check_rt_tables.stdout == ""
+    
+# Configure network
+       
+  - name: add wg interface
+    uci:
+      command: add
+      config: network
+      type: interface
+      name: wg0
+
+  - name: configure wg interface
+    uci:
+      command: set
+      key: network.wg0
+      value:
+        proto: wireguard
+        private_key: "{{ wg_private_key }}"
+        listen_port: "{{ wg_listen_port }}"
+        addresses:
+          - "{{ wg_client_address }}"
+      
+  - name: set wg client
+    uci:
+      command: section
+      config: network
+      type: wireguard_wg0
+      find_by:
+        name: wg0_client
+      value:
+        public_key: "{{ wg_public_key }}"
+        route_allowed_ips: 0
+        persistent_keepalive: 25
+        endpoint_host: "{{ wg_server_address }}"
+        allowed_ips: 0.0.0.0/0
+        endpoint_port: "{{ wg_client_port }}"
+        
+  - name: set rule mark0x1
+    uci:
+      command: section
+      config: network
+      type: rule
+      find_by:
+        name: mark0x1
+      value:
+        mark: "0x1"
+        priority: 100
+        lookup: vpn
+  
+  - name: uci commit
+    uci:
+      command: commit
+      config: network
+
+# Configure firewall
+
+  - name: Check string in firewall.user
+    shell: grep "iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn" /etc/firewall.user
+    register: check_firewall
+      
+  - name: add mangle to firewal.user
+    lineinfile:
+      path: /etc/firewall.user
+      state: present
+      line: "{{ item }}"
+    with_items:
+      - 'iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn_subnets dst -j MARK --set-xmark 0x1'
+      - 'iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn_ipsum dst -j MARK --set-xmark 0x1'
+    when: check_firewall.stdout == ""
+        
+  - name: set WG firewall zone 
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: wg
+      value:
+        forward: REJECT
+        output: ACCEPT
+        name: wg
+        input: REJECT
+        masq: 1
+        mtu_fix: 1
+        network: wg0
+        family: ipv4
+  
+  - name: add WG forwarding
+    uci:
+      command: section
+      config: firewall
+      type: forwarding
+      find_by:
+        name: wg-lan
+      value:
+        dest: wg
+        src: lan
+        
+  - name: add ipset for subnet
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+       value:
+         match: src_net
+         storage: hash
+         loadfile: /tmp/lst/subnet.lst
+         
+  - name: add ipset for ipsum
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ipsum
+       value:
+         match: src_net
+         storage: hash
+         loadfile: /tmp/lst/ipsum.lst
+              
+  - name: uci commit firewall
+    uci:
+      command: commit
+      config: firewall
+
+# Configure dnscrypt
+
+  - name: dnscrypt config
+    template:
+      src: "{{ ansible_template_dir }}openwrt-dnscrypt-proxy.j2"
+      dest: "/etc/config/dnscrypt-proxy"
+      
+  - name: edit dhcp config. resolvfile commented
+    lineinfile:
+      path: /etc/config/dhcp
+      regexp: "option resolvfile"
+      line: "        #option resolvfile       '/tmp/resolv.conf.auto'"
+      
+  - name: edit dhcp config. add localhost server
+    lineinfile:
+      path: /etc/config/dhcp
+      insertafter: "#option resolvfile"
+      line: "{{ item }}"
+    with_items:
+      - "        list server '127.0.0.1#5353'"
+      - "        list server '/pool.ntp.org/208.67.222.222'"
+      - "        list server '/antifilter.download/208.67.222.222'"
+      - "        option noresolv '1'"
+  
+  - name: enable and start dnscrypt-proxy
+    service:
+      name: dnscrypt-proxy
+      state: restarted
+      enabled: yes
+      
+  - name: restart dnsmasq
+    service:
+      name: dnsmasq
+      state: restarted
+
+# Restart network and run script
+
+  - name: restart network
+    service:
+      name: network
+      state: restarted
+      
+  - name: run hirkn script
+    service:
+      name: hirkn
+      state: started

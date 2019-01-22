@@ -1,0 +1,13 @@
+#!/bin/sh
+
+dir=/tmp/lst
+
+mkdir -p $dir
+
+echo "Run download lists"
+curl -z $dir/subnet.lst https://antifilter.download/list/subnet.lst --output $dir/subnet.lst
+
+curl -z $dir/ipresolve.lst https://antifilter.download/list/ipsum.lst --output $dir/ipsum.lst
+
+echo "Firewall restart"
+/etc/init.d/firewall restart
