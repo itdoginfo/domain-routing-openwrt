@@ -43,6 +43,7 @@ rm -rf ansible-openwrt-hirkn
 ```
 
 Обязательно нужно задать:
+
 **wg_server_address** - ip/url wireguard сервера
 
 **wg_private_key**, **wg_public_key** - ключи для "клиента"
