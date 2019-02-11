@@ -11,7 +11,7 @@
     ansible_template_dir: /etc/ansible/templates/
     wg_server_address: wg_server_ip/url
     wg_private_key: privatekey-client
-    wg_public_key: publickey-client
+    wg_public_key: publickey-server
     wg_listen_port: 51820
     wg_client_port: 51820
     wg_client_address: 192.168.100.3/24
