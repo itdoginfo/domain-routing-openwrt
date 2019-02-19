@@ -8,6 +8,7 @@ Playbook для Ansible, автоматизирующий настройку о�
 Бонусом устанавливается и настраивается DNSCrypt
 
 Полное описание происходящего: https://itdog.info/tochechnyj-obhod-blokirovok-rkn-na-routere-s-openwrt-s-pomoshhyu-wireguard-i-dnscrypt/
+
 И вот здесь: https://habr.com/ru/post/440030/
 
 # Использование
