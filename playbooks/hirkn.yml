@@ -134,7 +134,7 @@
         priority: 100
         lookup: vpn
   
-    - name: set disable dns for wan
+  - name: set disable dns for wan
     uci:
       command: set
       key: network.wan
