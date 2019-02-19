@@ -134,6 +134,13 @@
         priority: 100
         lookup: vpn
   
+    - name: set disable dns for wan
+    uci:
+      command: set
+      key: network.wan
+      value:
+        peerdns: 0
+  
   - name: uci commit
     uci:
       command: commit
@@ -233,9 +240,7 @@
     with_items:
       - "        list server '127.0.0.1#5353'"
       - "        list server '/pool.ntp.org/208.67.222.222'"
-      - "        list server '/antifilter.download/208.67.222.222'"
-      - "        option noresolv '1'"
-  
+
   - name: enable and start dnscrypt-proxy
     service:
       name: dnscrypt-proxy
