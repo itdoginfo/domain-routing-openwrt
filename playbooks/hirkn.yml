@@ -76,6 +76,7 @@
     template:
       src: "{{ ansible_template_dir }}openwrt-30-rknroute.j2"
       dest: "/etc/hotplug.d/iface/30-rknroute"
+      mode: 0644
       
   - name: Check string in rt_tables
     shell: grep "99 vpn" /etc/iproute2/rt_tables
@@ -225,6 +226,7 @@
     template:
       src: "{{ ansible_template_dir }}openwrt-dnscrypt-proxy.j2"
       dest: "/etc/config/dnscrypt-proxy"
+      mode: 0644
       
   - name: edit dhcp config. resolvfile commented
     lineinfile:
