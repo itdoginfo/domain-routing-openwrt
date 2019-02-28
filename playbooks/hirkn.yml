@@ -148,21 +148,7 @@
       config: network
 
 # Configure firewall
-
-  - name: Check string in firewall.user
-    shell: grep "iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn" /etc/firewall.user
-    register: check_firewall
-      
-  - name: add mangle to firewal.user
-    lineinfile:
-      path: /etc/firewall.user
-      state: present
-      line: "{{ item }}"
-    with_items:
-      - 'iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn_subnets dst -j MARK --set-xmark 0x1'
-      - 'iptables -t mangle -A PREROUTING -i br-lan -m set --match-set vpn_ipsum dst -j MARK --set-xmark 0x1'
-    when: check_firewall.stdout == ""
-        
+     
   - name: set WG firewall zone 
     uci:
       command: section
@@ -199,7 +185,7 @@
        find_by:
          name: vpn_subnets
        value:
-         match: src_net
+         match: dst_net
          storage: hash
          loadfile: /tmp/lst/subnet.lst
          
@@ -211,10 +197,38 @@
        find_by:
          name: vpn_ipsum
        value:
-         match: src_net
+         match: dst_net
          storage: hash
          loadfile: /tmp/lst/ipsum.lst
-              
+         
+  - name: add mark rule vpn_subnet
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_subnet
+       value:
+         src: lan
+         proto: all
+         ipset: vpn_subnets
+         set_mark: "0x1"
+         target: MARK
+
+  - name: add mark rule vpn_ipsum
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_ipsum
+       value:
+         src: lan
+         proto: all
+         ipset: vpn_ipsum
+         set_mark: "0x1"
+         target: MARK
+
   - name: uci commit firewall
     uci:
       command: commit
