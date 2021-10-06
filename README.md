@@ -67,8 +67,8 @@ ansible-playbook playbooks/hirkn.yml
 
 # "DST Root CA X3" issue
 С версии 19* по 20.02.0 есть проблема со скачиванием файлов c https://antifilter.download/. Там используется LE сертификат.
-Workroud в том, что бы переключить системную ssl библиотеку на openssl.
-Проверялось на 20.02.0
+
+Workroud в том, что бы переключить системную ssl библиотеку на openssl. Проверялось на 20.02.0
 ```
 sed -i 's/https/http/g' /etc/opkg/distfeeds.conf
 opkg install libopenssl
@@ -78,6 +78,7 @@ opkg install libustream-openssl20201210
 sed -i 's/http/https/g' /etc/opkg/distfeeds.conf
 ```
 Чтобы curl использовал openssl его надо пересобирать, поэтому добавлена возможность использовать wget.
+
 Для этого надо изменить переменную download_utility на wget
 ```
     download_utility: wget
