@@ -15,19 +15,26 @@
     wg_listen_port: 51820
     wg_client_port: 51820
     wg_client_address: 192.168.100.3/24
+    download_utility: curl
 
 # Packages installation
 
   tasks:
-  - name: install wireguard
+  - name: install kmod-wireguard
     opkg:
-      name: wireguard
+      name: kmod-wireguard
+      state: present
+
+  - name: install wireguard-tools
+    opkg:
+      name: wireguard-tools
       state: present
     
   - name: install curl
     opkg:
       name: curl
       state: present
+    when: download_utility == "curl"
   
   - name: install ipset
     opkg:
@@ -53,9 +60,16 @@
       dest: "/etc/rc.d/S99hirkn"
       state: link
 
+  - name: create crontab file
+    file:
+      dest: "/etc/crontabs/root"
+      state: touch
+      mode: 0600
+
   - name: check string in crontab
     shell: grep "hirkn" /etc/crontabs/root
     register: check_cron
+    ignore_errors: true
       
   - name: add script to cron
     lineinfile:
@@ -81,6 +95,7 @@
   - name: Check string in rt_tables
     shell: grep "99 vpn" /etc/iproute2/rt_tables
     register: check_rt_tables
+    ignore_errors: true
       
   - name: add route table
     lineinfile:
@@ -189,17 +204,19 @@
          storage: hash
          loadfile: /tmp/lst/subnet.lst
          
-  - name: add ipset for ipsum
+  - name: add ipset for ip
     uci:
        command: section
        config: firewall
        type: ipset
        find_by:
-         name: vpn_ipsum
+         name: vpn_ip
        value:
          match: dst_net
          storage: hash
-         loadfile: /tmp/lst/ipsum.lst
+         loadfile: /tmp/lst/ip.lst
+         hashsize: 1000000
+         maxelem: 1000000
          
   - name: add mark rule vpn_subnet
     uci:
@@ -210,22 +227,24 @@
          name: mark_subnet
        value:
          src: lan
+         dest: "*"
          proto: all
          ipset: vpn_subnets
          set_mark: "0x1"
          target: MARK
 
-  - name: add mark rule vpn_ipsum
+  - name: add mark rule vpn_ip
     uci:
        command: section
        config: firewall
        type: rule
        find_by:
-         name: mark_ipsum
+         name: mark_ip
        value:
          src: lan
+         dest: "*"
          proto: all
-         ipset: vpn_ipsum
+         ipset: vpn_ip
          set_mark: "0x1"
          target: MARK
 
