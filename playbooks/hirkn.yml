@@ -12,6 +12,7 @@
     wg_server_address: wg_server_ip/url
     wg_private_key: privatekey-client
     wg_public_key: publickey-server
+    #wg_preshared_key: preshared-key
     wg_listen_port: 51820
     wg_client_port: 51820
     wg_client_address: 192.168.100.3/24
@@ -59,12 +60,6 @@
       src: "/etc/init.d/hirkn"
       dest: "/etc/rc.d/S99hirkn"
       state: link
-
-  - name: create crontab file
-    file:
-      dest: "/etc/crontabs/root"
-      state: touch
-      mode: 0600
 
   - name: check string in crontab
     shell: grep "hirkn" /etc/crontabs/root
@@ -123,7 +118,7 @@
         addresses:
           - "{{ wg_client_address }}"
       
-  - name: set wg client
+  - name: set wg client without wg_preshared_key
     uci:
       command: section
       config: network
@@ -137,7 +132,25 @@
         endpoint_host: "{{ wg_server_address }}"
         allowed_ips: 0.0.0.0/0
         endpoint_port: "{{ wg_client_port }}"
+    when: wg_preshared_key is undefined
         
+  - name: set wg client with wg_preshared_key
+    uci:
+      command: section
+      config: network
+      type: wireguard_wg0
+      find_by:
+        name: wg0_client
+      value:
+        public_key: "{{ wg_public_key }}"
+        preshared_key: "{{ wg_preshared_key }}"
+        route_allowed_ips: 0
+        persistent_keepalive: 25
+        endpoint_host: "{{ wg_server_address }}"
+        allowed_ips: 0.0.0.0/0
+        endpoint_port: "{{ wg_client_port }}"
+    when: wg_preshared_key is defined
+
   - name: set rule mark0x1
     uci:
       command: section
@@ -149,14 +162,14 @@
         mark: "0x1"
         priority: 100
         lookup: vpn
-  
+
   - name: set disable dns for wan
     uci:
       command: set
       key: network.wan
       value:
         peerdns: 0
-  
+
   - name: uci commit
     uci:
       command: commit
@@ -191,6 +204,7 @@
       value:
         dest: wg
         src: lan
+        family: ipv4
         
   - name: add ipset for subnet
     uci:
@@ -215,9 +229,9 @@
          match: dst_net
          storage: hash
          loadfile: /tmp/lst/ip.lst
-         hashsize: 1000000
-         maxelem: 1000000
-         
+         hashsize: 9900000
+         maxelem: 9900000
+
   - name: add mark rule vpn_subnet
     uci:
        command: section
@@ -232,6 +246,7 @@
          ipset: vpn_subnets
          set_mark: "0x1"
          target: MARK
+         family: ipv4
 
   - name: add mark rule vpn_ip
     uci:
@@ -247,6 +262,7 @@
          ipset: vpn_ip
          set_mark: "0x1"
          target: MARK
+         family: ipv4
 
   - name: uci commit firewall
     uci:
@@ -260,7 +276,7 @@
       src: "{{ ansible_template_dir }}openwrt-dnscrypt-proxy.j2"
       dest: "/etc/config/dnscrypt-proxy"
       mode: 0644
-      
+
   - name: edit dhcp config. resolvfile commented
     lineinfile:
       path: /etc/config/dhcp
@@ -275,7 +291,7 @@
     with_items:
       - "        list server '127.0.0.1#5353'"
       - "        list server '/pool.ntp.org/208.67.222.222'"
-
+  
   - name: enable and start dnscrypt-proxy
     service:
       name: dnscrypt-proxy

@@ -58,6 +58,8 @@ rm -rf ansible-openwrt-hirkn README.md
 
 Остальное можно менять, в зависимости от того как настроен wireguard сервер
 
+Если ваш wg сервер использует preshared_key, то раскомментируйте **wg_preshared_key** и задайте ключ
+
 Запуск playbook
 ```
 ansible-playbook playbooks/hirkn.yml
