@@ -10,10 +10,12 @@ echo "Run download lists"
 {% if download_utility == "curl" %}
 curl -z $dir/subnet.lst https://antifilter.download/list/subnet.lst --output $dir/subnet.lst
 curl -z $dir/ip.lst https://antifilter.download/list/ip.lst --output $dir/ip.lst
+curl -z $dir/community.lst https://community.antifilter.download/list/community.lst --output $dir/community.lst
 
 {% elif download_utility == "wget" %}
 rm -f /$dir/subnet.lst && wget -P $dir https://antifilter.download/list/subnet.lst
 rm -f /$dir/ip.lst && wget -P $dir https://antifilter.download/list/ip.lst
+rm -f /$dir/community.lst && wget -P $dir https://community.antifilter.download/list/community.lst
 
 {% endif %}
 

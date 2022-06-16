@@ -44,7 +44,7 @@
       
   - name: install dnscrypt
     opkg:
-      name: dnscrypt-proxy
+      name: dnscrypt-proxy2
       state: present
       
 # Hirkn script configure
@@ -232,6 +232,20 @@
          hashsize: 9900000
          maxelem: 9900000
 
+  - name: add ipset for community
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+       value:
+         match: dst_net
+         storage: hash
+         loadfile: /tmp/lst/community.lst
+         hashsize: 9900000
+         maxelem: 9900000
+
   - name: add mark rule vpn_subnet
     uci:
        command: section
@@ -264,18 +278,34 @@
          target: MARK
          family: ipv4
 
+  - name: add mark rule vpn_community
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_community
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_community
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+
   - name: uci commit firewall
     uci:
       command: commit
       config: firewall
 
-# Configure dnscrypt
+# Configure dnscrypt2
 
-  - name: dnscrypt config
-    template:
-      src: "{{ ansible_template_dir }}openwrt-dnscrypt-proxy.j2"
-      dest: "/etc/config/dnscrypt-proxy"
-      mode: 0644
+  - name: dnscrypt2 enable exact servers
+    lineinfile:
+      path: /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
+      regexp: "# server_names ="
+      line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
 
   - name: edit dhcp config. resolvfile commented
     lineinfile:
@@ -289,7 +319,7 @@
       insertafter: "#option resolvfile"
       line: "{{ item }}"
     with_items:
-      - "        list server '127.0.0.1#5353'"
+      - "        list server '127.0.0.53#53'"
       - "        list server '/pool.ntp.org/208.67.222.222'"
   
   - name: enable and start dnscrypt-proxy

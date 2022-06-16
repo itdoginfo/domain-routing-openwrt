@@ -67,6 +67,14 @@ ansible-playbook playbooks/hirkn.yml
 
 После выполнения playbook роутер сразу начнёт выполнять обход блокировок через Wireguard сервер.
 
+# DNSCrypt-proxy2
+
+Если у вас уже стоит dnscrypt-proxy первой версии, его необходимо удалить
+```
+opkg remove dnscrypt-proxy
+```
+Во второй версии есть отказоустойчивость из коробки.
+
 # "DST Root CA X3" issue
 С версии 19* по 20.02.0 есть проблема со скачиванием файлов c https://antifilter.download/. Там используется LE сертификат.
 
