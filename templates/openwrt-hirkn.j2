@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh /etc/rc.common
 
 START=99
 
