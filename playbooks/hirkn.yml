@@ -301,11 +301,17 @@
 
 # Configure dnscrypt2
 
+  - name: check string in dnscrypt-proxy.toml
+    shell: grep "# server_names" /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
+    register: check_server_names
+    ignore_errors: true
+      
   - name: dnscrypt2 enable exact servers
     lineinfile:
       path: /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
       regexp: "# server_names ="
       line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
+    when: check_server_names.stdout == "1"
 
   - name: edit dhcp config. resolvfile commented
     lineinfile:
