@@ -3,19 +3,54 @@
 START=99
 
 dir=/tmp/lst
+SUBNET=https://antifilter.download/list/subnet.lst
+IP=https://antifilter.download/list/ip.lst
+COMMUNITY=https://community.antifilter.download/list/community.lst
 
 mkdir -p $dir
 
 echo "Run download lists"
 {% if download_utility == "curl" %}
-curl -z $dir/subnet.lst https://antifilter.download/list/subnet.lst --output $dir/subnet.lst
-curl -z $dir/ip.lst https://antifilter.download/list/ip.lst --output $dir/ip.lst
-curl -z $dir/community.lst https://community.antifilter.download/list/community.lst --output $dir/community.lst
+curl -z $dir/subnet.lst $SUBNET --output $dir/subnet.lst
+curl -z $dir/ip.lst $IP --output $dir/ip.lst
+curl -z $dir/community.lst $COMMUNITY --output $dir/community.lst
+
+# Check file at reboot
+if [ ! -f $dir/subnet.lst ]
+then
+    curl -z $dir/subnet.lst $SUBNET --output $dir/subnet.lst
+fi
+
+if [ ! -f $dir/ip.lst ]
+then
+    curl -z $dir/ip.lst $IP --output $dir/ip.lst
+fi
+
+if [ ! -f $dir/community.lst ]
+then
+    curl -z $dir/community.lst $COMMUNITY --output $dir/community.lst
+fi
 
 {% elif download_utility == "wget" %}
-rm -f /$dir/subnet.lst && wget -P $dir https://antifilter.download/list/subnet.lst
-rm -f /$dir/ip.lst && wget -P $dir https://antifilter.download/list/ip.lst
-rm -f /$dir/community.lst && wget -P $dir https://community.antifilter.download/list/community.lst
+rm -f /$dir/subnet.lst && wget -P $dir $SUBNET
+rm -f /$dir/ip.lst && wget -P $dir $IP
+rm -f /$dir/community.lst && wget -P $dir $COMMUNITY
+
+# Check file at reboot
+if [ ! -f $dir/subnet.lst ]
+then
+    wget -P $dir $SUBNET
+fi
+
+if [ ! -f $dir/ip.lst ]
+then
+    wget -P $dir $IP
+fi
+
+if [ ! -f $dir/community.lst ]
+then
+    wget -P $dir $COMMUNITY
+fi
 
 {% endif %}
 
