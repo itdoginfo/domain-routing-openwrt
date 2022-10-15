@@ -41,6 +41,7 @@
     opkg:
       name: ipset
       state: present
+    when: ansible_distribution_major_version < "22"   
       
   - name: install dnscrypt
     opkg:
@@ -206,7 +207,7 @@
         src: lan
         family: ipv4
         
-  - name: add ipset for subnet
+  - name: add ipset for subnet (<22)
     uci:
        command: section
        config: firewall
@@ -217,8 +218,9 @@
          match: dst_net
          storage: hash
          loadfile: /tmp/lst/subnet.lst
+    when: ansible_distribution_major_version < "22"
          
-  - name: add ipset for ip
+  - name: add ipset for ip (<22)
     uci:
        command: section
        config: firewall
@@ -231,8 +233,9 @@
          loadfile: /tmp/lst/ip.lst
          hashsize: 9900000
          maxelem: 9900000
+    when: ansible_distribution_major_version < "22"
 
-  - name: add ipset for community
+  - name: add ipset for community (<22)
     uci:
        command: section
        config: firewall
@@ -245,6 +248,43 @@
          loadfile: /tmp/lst/community.lst
          hashsize: 9900000
          maxelem: 9900000
+    when: ansible_distribution_major_version < "22"
+
+  - name: add ipset for subnet (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/subnet.lst
+    when: ansible_distribution_major_version == "22"
+         
+  - name: add ipset for ip (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ip
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/ip.lst
+    when: ansible_distribution_major_version == "22"
+
+  - name: add ipset for community (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/community.lst
+    when: ansible_distribution_major_version == "22"
 
   - name: add mark rule vpn_subnet
     uci:
