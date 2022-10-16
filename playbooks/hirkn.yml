@@ -351,7 +351,7 @@
       path: /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
       regexp: "# server_names ="
       line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
-    when: check_server_names.stdout == "1"
+    when: check_server_names.stdout
 
   - name: edit dhcp config. resolvfile commented
     lineinfile:
