@@ -352,21 +352,17 @@
       regexp: "# server_names ="
       line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
     when: check_server_names.stdout
-
-  - name: edit dhcp config. resolvfile commented
-    lineinfile:
-      path: /etc/config/dhcp
-      regexp: "option resolvfile"
-      line: "        #option resolvfile       '/tmp/resolv.conf.auto'"
-      
+    
   - name: edit dhcp config. add localhost server
     lineinfile:
       path: /etc/config/dhcp
-      insertafter: "#option resolvfile"
+      firstmatch: "true"
+      insertafter: "option leasefile '/tmp/dhcp.leases'"
       line: "{{ item }}"
     with_items:
       - "        list server '127.0.0.53#53'"
       - "        list server '/pool.ntp.org/208.67.222.222'"
+      - "        option noresolv '1'"
   
   - name: enable and start dnscrypt-proxy
     service:
