@@ -17,20 +17,23 @@
     wg_client_port: 51820
     wg_client_address: 192.168.100.3/24
     download_utility: curl
+    list_subnet: true
+    list_ip: true
+    list_community: true
+    list_domains: false
 
 # Packages installation
 
   tasks:
-  - name: install kmod-wireguard
+  - name: install packages
     opkg:
-      name: kmod-wireguard
+      name: "{{ item }}"
       state: present
+    loop:
+        - kmod-wireguard
+        - wireguard-tools
+        - dnscrypt-proxy2
 
-  - name: install wireguard-tools
-    opkg:
-      name: wireguard-tools
-      state: present
-    
   - name: install curl
     opkg:
       name: curl
@@ -41,13 +44,14 @@
     opkg:
       name: ipset
       state: present
-    when: ansible_distribution_major_version < "22"   
-      
-  - name: install dnscrypt
-    opkg:
-      name: dnscrypt-proxy2
-      state: present
-      
+    when: ansible_distribution_major_version < "22"
+
+# Dnsmasq version check
+
+  - name: Get dnsmasq version
+    shell: opkg list-installed | grep dnsmasq-full | awk '{print $3}'
+    register: dnsmasqfull_version
+
 # Hirkn script configure
       
   - name: hirkn script copy
@@ -55,18 +59,22 @@
       src: "{{ ansible_template_dir }}openwrt-hirkn.j2"
       dest: "/etc/init.d/hirkn"
       mode: a+x
-      
+    notify:
+      - Run hirkn script
+
   - name: create simplink in rc.d
     file:
       src: "/etc/init.d/hirkn"
       dest: "/etc/rc.d/S99hirkn"
       state: link
+    notify:
+      - Run hirkn script
 
   - name: check string in crontab
     shell: grep "hirkn" /etc/crontabs/root
     register: check_cron
     ignore_errors: true
-      
+     
   - name: add script to cron
     lineinfile:
       path: /etc/crontabs/root
@@ -87,6 +95,8 @@
       src: "{{ ansible_template_dir }}openwrt-30-rknroute.j2"
       dest: "/etc/hotplug.d/iface/30-rknroute"
       mode: 0644
+    notify:
+      - Restart network
       
   - name: Check string in rt_tables
     shell: grep "99 vpn" /etc/iproute2/rt_tables
@@ -98,6 +108,8 @@
       path: /etc/iproute2/rt_tables
       line: "99 vpn"
     when: check_rt_tables.stdout == ""
+    notify:
+      - Restart network
     
 # Configure network
        
@@ -175,6 +187,8 @@
     uci:
       command: commit
       config: network
+    notify:
+      - Restart network
 
 # Configure firewall
      
@@ -194,7 +208,7 @@
         mtu_fix: 1
         network: wg0
         family: ipv4
-  
+        
   - name: add WG forwarding
     uci:
       command: section
@@ -218,7 +232,7 @@
          match: dst_net
          storage: hash
          loadfile: /tmp/lst/subnet.lst
-    when: ansible_distribution_major_version < "22"
+    when: ansible_distribution_major_version < "22" and list_subnet
          
   - name: add ipset for ip (<22)
     uci:
@@ -233,7 +247,7 @@
          loadfile: /tmp/lst/ip.lst
          hashsize: 9900000
          maxelem: 9900000
-    when: ansible_distribution_major_version < "22"
+    when: ansible_distribution_major_version < "22" and list_ip
 
   - name: add ipset for community (<22)
     uci:
@@ -248,7 +262,7 @@
          loadfile: /tmp/lst/community.lst
          hashsize: 9900000
          maxelem: 9900000
-    when: ansible_distribution_major_version < "22"
+    when: ansible_distribution_major_version < "22" and list_community
 
   - name: add ipset for subnet (22)
     uci:
@@ -260,7 +274,7 @@
        value:
          match: dst_net
          loadfile: /tmp/lst/subnet.lst
-    when: ansible_distribution_major_version == "22"
+    when: ansible_distribution_major_version == "22" and list_subnet
          
   - name: add ipset for ip (22)
     uci:
@@ -272,7 +286,7 @@
        value:
          match: dst_net
          loadfile: /tmp/lst/ip.lst
-    when: ansible_distribution_major_version == "22"
+    when: ansible_distribution_major_version == "22" and list_ip
 
   - name: add ipset for community (22)
     uci:
@@ -284,7 +298,32 @@
        value:
          match: dst_net
          loadfile: /tmp/lst/community.lst
-    when: ansible_distribution_major_version == "22"
+    when: ansible_distribution_major_version == "22" and list_community
+
+  - name: add ipset for domains (<22). If failed, check dnsmasq-full
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+       value:
+         match: dst_net
+         storage: hash
+    failed_when: ansible_distribution_major_version < "22" and list_domains and not dnsmasqfull_version.stdout
+    when: ansible_distribution_major_version < "22" and list_domains and dnsmasqfull_version.stdout
+
+  - name: add ipset for domains (22). If failed, check dnsmasq-full
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+       value:
+         match: dst_net
+    failed_when: ansible_distribution_major_version == "22" and list_domains and dnsmasqfull_version.stdout < "2.87"
+    when: ansible_distribution_major_version == "22" and list_domains and dnsmasqfull_version.stdout >= "2.87"
 
   - name: add mark rule vpn_subnet
     uci:
@@ -301,6 +340,7 @@
          set_mark: "0x1"
          target: MARK
          family: ipv4
+    when: list_subnet
 
   - name: add mark rule vpn_ip
     uci:
@@ -317,6 +357,7 @@
          set_mark: "0x1"
          target: MARK
          family: ipv4
+    when: list_ip
 
   - name: add mark rule vpn_community
     uci:
@@ -333,11 +374,104 @@
          set_mark: "0x1"
          target: MARK
          family: ipv4
+    when: list_community
+
+  - name: add mark rule vpn_domains
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_domains
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_domains
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+    when: (ansible_distribution_major_version < "22" and list_domains and dnsmasqfull_version.stdout) or (ansible_distribution_major_version == "22" and list_domains and dnsmasqfull_version.stdout >= "2.87")
+
+# Remove unused rules and ipset
+  - name: Remove ipset for ip
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ip
+    when: not list_ip
+
+  - name: Remove rule for ip
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_ip
+    when: not list_ip
+
+  - name: Remove ipset for subnet
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+    when: not list_subnet
+
+  - name: Remove rule for subnet
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_subnet
+    when: not list_subnet
+
+  - name: Remove ipset for community
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+    when: not list_community
+
+  - name: Remove rule for community
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_community
+    when: not list_community
+
+  - name: Remove ipset for domains
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+    when: not list_domains
+
+  - name: Remove rule for domains
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_domains
+    when: not list_domains
 
   - name: uci commit firewall
     uci:
       command: commit
       config: firewall
+    notify:
+      - Restart firewall
 
 # Configure dnscrypt2
 
@@ -352,6 +486,8 @@
       regexp: "# server_names ="
       line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
     when: check_server_names.stdout
+    notify:
+      - Restart dnscrypt-proxy
     
   - name: edit dhcp config. add localhost server
     lineinfile:
@@ -363,26 +499,32 @@
       - "        list server '127.0.0.53#53'"
       - "        list server '/pool.ntp.org/208.67.222.222'"
       - "        option noresolv '1'"
-  
-  - name: enable and start dnscrypt-proxy
+    notify:
+      - Restart dnsmasq
+
+  handlers:
+  - name: Restart network
+    service:
+      name: network
+      state: restarted
+
+  - name: Restart firewall
+    service:
+      name: firewall
+      state: restarted
+
+  - name: Run hirkn script
+    service:
+      name: hirkn
+      state: restarted
+
+  - name: Restart dnscrypt-proxy
     service:
       name: dnscrypt-proxy
       state: restarted
       enabled: yes
       
-  - name: restart dnsmasq
+  - name: Restart dnsmasq
     service:
       name: dnsmasq
       state: restarted
-
-# Restart network and run script
-
-  - name: restart network
-    service:
-      name: network
-      state: restarted
-      
-  - name: run hirkn script
-    service:
-      name: hirkn
-      state: started
