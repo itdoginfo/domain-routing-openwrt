@@ -6,52 +6,94 @@ dir=/tmp/lst
 SUBNET=https://antifilter.download/list/subnet.lst
 IP=https://antifilter.download/list/ip.lst
 COMMUNITY=https://community.antifilter.download/list/community.lst
+DOMAINS=https://community.antifilter.download/list/domains.lst
+
+
+{% if download_utility == "curl" %}
+download () {
+    count=0
+    while [ ! -f $dir/$1 ]; do
+    if [ $count -gt 10 ]; then
+        echo Exit
+        exit 1
+    else
+        echo "Try $count"
+        curl -f -z $dir/$1 $2 --output $dir/$1
+        count=$((count+1))
+        sleep 5
+    fi
+    done
+}
+
+{% elif download_utility == "wget" %}
+download () {
+    count=0
+    while [ ! -f $dir/$1 ]; do
+    if [ $count -gt 10 ]; then
+        echo Exit
+        exit 1
+    else
+        echo "Try $count"
+        wget -P $dir $2
+        count=$((count+1))
+        sleep 5
+    fi
+    done
+}
+{% endif %}
 
 mkdir -p $dir
 
 echo "Run download lists"
 {% if download_utility == "curl" %}
-curl -z $dir/subnet.lst $SUBNET --output $dir/subnet.lst
-curl -z $dir/ip.lst $IP --output $dir/ip.lst
-curl -z $dir/community.lst $COMMUNITY --output $dir/community.lst
 
-# Check file at reboot
-if [ ! -f $dir/subnet.lst ]
-then
-    curl -z $dir/subnet.lst $SUBNET --output $dir/subnet.lst
-fi
-
-if [ ! -f $dir/ip.lst ]
-then
-    curl -z $dir/ip.lst $IP --output $dir/ip.lst
-fi
-
-if [ ! -f $dir/community.lst ]
-then
-    curl -z $dir/community.lst $COMMUNITY --output $dir/community.lst
-fi
+{% if list_subnet %}
+curl -f -z $dir/subnet.lst $SUBNET --output $dir/subnet.lst
+download subnet.lst $SUBNET
+{% endif %}
+{% if list_ip %}
+curl -f -z $dir/ip.lst $IP --output $dir/ip.lst
+download ip.lst $IP
+{% endif %}
+{% if list_community %}
+curl -f -z $dir/community.lst $COMMUNITY --output $dir/community.lst
+download community.lst $COMMUNITY
+{% endif %}
+{% if list_domains  and (ansible_distribution_major_version < "22" and dnsmasqfull_version.stdout) or ( ansible_distribution_major_version == "22" and dnsmasqfull_version.stdout >= "2.87") %}
+curl -f -z $dir/domains.lst $DOMAINS --output $dir/domains.lst
+download domains.lst $DOMAINS
+{% endif %}
 
 {% elif download_utility == "wget" %}
+
+{% if list_subnet %}
 rm -f /$dir/subnet.lst && wget -P $dir $SUBNET
+download subnet.lst $SUBNET
+{% endif %}
+{% if list_ip %}
 rm -f /$dir/ip.lst && wget -P $dir $IP
+download ip.lst $IP
+{% endif %}
+{% if list_community %}
 rm -f /$dir/community.lst && wget -P $dir $COMMUNITY
+download community.lst $COMMUNITY
+{% endif %}
+{% if list_domains  and (ansible_distribution_major_version < "22" and dnsmasqfull_version.stdout) or ( ansible_distribution_major_version == "22" and dnsmasqfull_version.stdout >= "2.87") %}
+rm -f /$dir/domains.lst && wget -P $dir $DOMAINS
+download domains.lst $DOMAINS
+{% endif %}
+{% endif %}
 
-# Check file at reboot
-if [ ! -f $dir/subnet.lst ]
-then
-    wget -P $dir $SUBNET
-fi
+{% if list_domains %}
+{% if ansible_distribution_major_version == "22" and dnsmasqfull_version.stdout >= "2.87" %}
+sed "s/.*/\/&/" $dir/domains.lst | sed -e "s/.*/nftset=&\/4#inet#fw4#vpn_domains/" > /tmp/dnsmasq.d/domains
 
-if [ ! -f $dir/ip.lst ]
-then
-    wget -P $dir $IP
-fi
+{% elif ansible_distribution_major_version < "22" and dnsmasqfull_version.stdout %}
+sed "s/.*/\/&/" $dir/domains.lst | sed -e "s/.*/ipset=&\/vpn_domains/" > /tmp/dnsmasq.d/domains
+{% endif %}
 
-if [ ! -f $dir/community.lst ]
-then
-    wget -P $dir $COMMUNITY
-fi
-
+echo "Dnsmasq restart"
+/etc/init.d/dnsmasq restart
 {% endif %}
 
 echo "Firewall restart"
