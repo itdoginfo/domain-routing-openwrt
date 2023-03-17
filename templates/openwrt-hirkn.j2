@@ -86,10 +86,10 @@ download domains.lst $DOMAINS
 
 {% if list_domains %}
 {% if ansible_distribution_major_version == "22" and dnsmasqfull_version.stdout >= "2.87" %}
-sed "s/.*/\/&/" $dir/domains.lst | sed -e "s/.*/nftset=&\/4#inet#fw4#vpn_domains/" > /tmp/dnsmasq.d/domains
+sed "s/.*/nftset=\/&\/4#inet#fw4#vpn_domains/" $dir/domains.lst > /tmp/dnsmasq.d/domains
 
 {% elif ansible_distribution_major_version < "22" and dnsmasqfull_version.stdout %}
-sed "s/.*/\/&/" $dir/domains.lst | sed -e "s/.*/ipset=&\/vpn_domains/" > /tmp/dnsmasq.d/domains
+sed "s/.*/ipset=\/&\/vpn_domains/" $dir/domains.lst > /tmp/dnsmasq.d/domains
 {% endif %}
 
 echo "Dnsmasq restart"
