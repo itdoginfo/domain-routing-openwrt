@@ -59,6 +59,7 @@
       src: "{{ ansible_template_dir }}openwrt-hirkn.j2"
       dest: "/etc/init.d/hirkn"
       mode: a+x
+      trim_blocks: false
     notify:
       - Run hirkn script
 

@@ -45,6 +45,11 @@ script () {
 
     mkdir -p $dir
 
+    {% if list_ip or list_community %}
+    echo "Flush sets"
+    nft flush ruleset
+    {% endif %}
+
     echo "Run download lists"
     {% if download_utility == "curl" %}
 
@@ -88,15 +93,12 @@ script () {
     {% if list_domains %}
     {% if ansible_distribution_major_version == "22" and dnsmasqfull_version.stdout >= "2.87" %}
     sed "s/.*/nftset=\/&\/4#inet#fw4#vpn_domains/" $dir/domains.lst > /tmp/dnsmasq.d/domains
-
     {% elif ansible_distribution_major_version < "22" and dnsmasqfull_version.stdout %}
     sed "s/.*/ipset=\/&\/vpn_domains/" $dir/domains.lst > /tmp/dnsmasq.d/domains
     {% endif %}
-
     echo "Dnsmasq restart"
     /etc/init.d/dnsmasq restart
     {% endif %}
-
     echo "Firewall restart"
     /etc/init.d/firewall restart
 }
