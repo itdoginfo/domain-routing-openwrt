@@ -45,7 +45,7 @@ script () {
 
     mkdir -p $dir
 
-    {% if list_ip or list_community %}
+    {% if ansible_distribution_major_version == "22" and (list_ip or list_community) %}
     echo "Flush sets"
     nft flush ruleset
     {% endif %}
