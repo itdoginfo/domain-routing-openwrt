@@ -79,7 +79,7 @@
     lineinfile:
       path: /etc/crontabs/root
       create: yes
-      line: "0 4 * * * /etc/init.d/hirkn"
+      line: "0 4 * * * /etc/init.d/hirkn reload"
     when: check_cron.stdout == ""
     
   - name: enable and start crontab
