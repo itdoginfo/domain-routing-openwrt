@@ -85,6 +85,36 @@ ansible-playbook playbooks/hirkn.yml
 
 После выполнения playbook роутер сразу начнёт выполнять обход блокировок через Wireguard сервер.
 
+# Скрипт для проверки конфигурации
+
+Написан для OpenWrt 22.03. На 21.02 работает только половина проверок.
+
+[x] - не обязательно означает, что эта часть не работает. Но это повод для ручной проверки.
+
+Есть функционал сохранения вывода скрипта, конфигурации сети и firewall в файл. Все чувствительные переменные при этом затираются.
+
+### Запуск
+```
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh | sh
+```
+
+### Запустить с созданием dump
+```
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh | sh -s dump
+```
+
+### Скачать и потом запустить
+```
+wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh
+chmod +x check-hirkn.sh
+./check-hirkn.sh
+```
+
+С созданием dump
+```
+./check-hirkn.sh dump
+```
+
 # DNSCrypt-proxy2
 
 Если у вас уже стоит dnscrypt-proxy первой версии, его необходимо удалить
