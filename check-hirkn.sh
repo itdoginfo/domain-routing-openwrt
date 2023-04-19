@@ -276,11 +276,12 @@ if [[ "$1" == dump ]]; then
     uci show firewall >> $DUMP
     uci show network | sed -r 's/(.*private_key=|.*preshared_key=|.*public_key=|.*endpoint_host=|.*wan.ipaddr=|.*wan.netmask=|.*wan.gateway=|.*wan.dns|.*.macaddr=).*/\1REMOVED/' >> $DUMP
 
+    echo "Dump is here: $DUMP"
     echo "For download Linux/Mac use:"
-    echo -e "scp root@IP_ROUTER:$DUMP .\n"
-    echo "For Windows use PSCP or WSL. File dump location: $DUMP"
+    echo "scp root@IP_ROUTER:$DUMP ."
+    echo "For Windows use PSCP or WSL"
 fi
 
 # Info
-echo "Telegram channel: https://t.me/itdoginfo"
+echo -e "\nTelegram channel: https://t.me/itdoginfo"
 echo "Telegram chat: https://t.me/itdogchat"
