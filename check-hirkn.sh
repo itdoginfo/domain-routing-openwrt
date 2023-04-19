@@ -12,7 +12,7 @@ checkpoint_false() {
 }
 
 output_21() {
-    if [ "$VERSION_ID" -ge 21 ]; then
+    if [ "$VERSION_ID" -eq 21 ]; then
         echo "You are using OpenWrt 21.02. This check does not support it"
     fi
 }
@@ -39,7 +39,7 @@ else
     echo "If you don't use vpn_domains set, it's OK"
     echo "Check version: opkg list-installed | grep dnsmasq-full"
     echo "Required version >= 2.87. For openwrt 22.03 follow manual: https://t.me/itdoginfo/12"
-    if [ "$VERSION_ID" -ge 21 ]; then
+    if [ "$VERSION_ID" -eq 21 ]; then
         echo "You are using OpenWrt 21.02. This check does not support it"
         echo "Manual for openwrt 21.02: https://t.me/itdoginfo/8"
     fi
