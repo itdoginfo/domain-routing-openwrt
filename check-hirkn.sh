@@ -62,15 +62,6 @@ else
     echo "Install: opkg install curl"
 fi
 
-DNSCRYPT=$(opkg list-installed | grep -c dnscrypt-proxy2 )
-if [ $DNSCRYPT -eq 1 ]; then
-    checkpoint_true "Dnscrypt-proxy2 package"
-else
-    checkpoint_false "Dnscrypt-proxy2 package"
-    echo "If you don't use Dnscrypt, it's OK"
-    echo "But if you want use, install: opkg install dnscrypt-proxy2"
-fi
-
 # Check internet connection
 CHECK_INTERNET=$(curl -Is https://community.antifilter.download/ | grep -c 200)
 
@@ -195,7 +186,7 @@ else
 fi
 
 VPN_IP_SUBNET=$(nft list ruleset | grep -A 10 vpn_subnet | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-if [ $VPN_IP_IP -ge 1 ]; then
+if [ $VPN_IP_SUBNET -ge 1 ]; then
     checkpoint_true "IPs in vpn_subnet"
 else
     checkpoint_false "IPs in vpn_subnet"
@@ -205,7 +196,7 @@ else
 fi
 
 VPN_COMMUNITY_IP=$(nft list ruleset | grep -A 10 vpn_community | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
-if [ $VPN_IP_IP -ge 1 ]; then
+if [ $VPN_COMMUNITY_IP -ge 1 ]; then
     checkpoint_true "IPs in vpn_community"
 else
     checkpoint_false "IPs in vpn_community"
@@ -214,16 +205,7 @@ else
     output_21
 fi
 
-# Check dnsmasq and dnscrypt
-DNSCRYPT_RUN=$(service dnscrypt-proxy status | grep -c 'running')
-if [ $DNSCRYPT_RUN -eq 1 ]; then
-    checkpoint_true "DNSCrypt service"
-else
-    checkpoint_false "DNSCrypt service"
-    echo "If you don't use Dnscrypt, it's OK"
-    echo "But if you want use, check config: https://cli.co/wN-tc_S"
-    output_21
-fi
+# Check dnsmasq
 
 DNSMASQ_RUN=$(service dnsmasq status | grep -c 'running')
 if [ $DNSMASQ_RUN -eq 1 ]; then
@@ -232,24 +214,6 @@ else
     checkpoint_false "Dnsmasq service"
     echo "Check config /etc/config/dhcp"
     output_21
-fi
-
-DNSMASQ_STRING=$(uci show dhcp.@dnsmasq[0] | grep -c "127.0.0.53#53\|noresolv='1'")
-if [ $DNSMASQ_STRING -eq 2 ]; then
-    checkpoint_true "Dnsmasq config for DNSCrypt"
-else
-    checkpoint_false "Dnsmasq config for DNSCrypt"
-    echo "If you don't use Dnscrypt, it's OK"
-    echo "But if you want use, check config: https://cli.co/rooc0uz"
-fi
-
-DNSMASQ_NETWORK_STRING=$(uci show network.wan.peerdns | grep -c "peerdns='0'")
-if [ $DNSMASQ_NETWORK_STRING -eq 1 ]; then
-    checkpoint_true "Network config for DNSCrypt"
-else
-    checkpoint_false "Network config for DNSCrypt"
-    echo "If you don't use Dnscrypt, it's OK"
-    echo "But if you want use, check peerdns='0' in /etc/config/network"
 fi
 
 # Check hirkn script
@@ -266,6 +230,44 @@ if [ $HIRKN_CRON -eq 1 ]; then
 else
     checkpoint_false "Script hirkn in crontab"
     echo "Script is not enabled in crontab. Check: crontab -l"
+fi
+
+# DNSCrypt
+DNSCRYPT=$(opkg list-installed | grep -c dnscrypt-proxy2 )
+if [ $DNSCRYPT -eq 1 ]; then
+    checkpoint_true "Dnscrypt-proxy2 package"
+else
+    checkpoint_false "Dnscrypt-proxy2 package"
+    echo "If you don't use Dnscrypt, it's OK"
+    echo "But if you want use, install: opkg install dnscrypt-proxy2"
+fi
+
+DNSCRYPT_RUN=$(service dnscrypt-proxy status | grep -c 'running')
+if [ $DNSCRYPT_RUN -eq 1 ]; then
+    checkpoint_true "DNSCrypt service"
+else
+    checkpoint_false "DNSCrypt service"
+    echo "If you don't use Dnscrypt, it's OK"
+    echo "But if you want use, check config: https://cli.co/wN-tc_S"
+    output_21
+fi
+
+DNSMASQ_NETWORK_STRING=$(uci show network.wan.peerdns | grep -c "peerdns='0'")
+if [ $DNSMASQ_NETWORK_STRING -eq 1 ]; then
+    checkpoint_true "Network config for DNSCrypt"
+else
+    checkpoint_false "Network config for DNSCrypt"
+    echo "If you don't use Dnscrypt, it's OK"
+    echo "But if you want use, check peerdns='0' in /etc/config/network"
+fi
+
+DNSMASQ_STRING=$(uci show dhcp.@dnsmasq[0] | grep -c "127.0.0.53#53\|noresolv='1'")
+if [ $DNSMASQ_STRING -eq 2 ]; then
+    checkpoint_true "Dnsmasq config for DNSCrypt"
+else
+    checkpoint_false "Dnsmasq config for DNSCrypt"
+    echo "If you don't use Dnscrypt, it's OK"
+    echo "But if you want use, check config: https://cli.co/rooc0uz"
 fi
 
 # Create dump
