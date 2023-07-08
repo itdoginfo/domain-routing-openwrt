@@ -92,6 +92,14 @@ else
     fi
 fi
 
+# Check WG route_allowed_ips
+if uci show network | grep -q ".route_allowed_ips='1'"; then
+    checkpoint_false "Wireguard route_allowed_ips"
+    echo "All traffic goes into the tunnel. Read more at: https://cli.co/SaxBzH7"
+else
+    checkpoint_true "Wireguard route_allowed_ips"
+fi
+
 # Check route table
 ROUTE_TABLE=$(ip route show table vpn | grep -c "default dev wg0 scope link" )
 if [ $ROUTE_TABLE -eq 1 ]; then
