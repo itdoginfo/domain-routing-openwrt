@@ -6,7 +6,7 @@ Shell скрипт и playbook для Ansible. Автоматизируют на
 ## Скрипт для установки
 Запуск
 ```
-!! wget bla bla
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh | sh
 ```
 
 Подробности описаны в статье указаной выше.
@@ -149,17 +149,17 @@ service getdomains start
 
 ### Запуск
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh | sh
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh
 ```
 
 ### Запустить с созданием dump
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh | sh -s dump
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh -s dump
 ```
 
 ### Скачать и потом запустить
 ```
-wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/check-hirkn.sh
+wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh
 chmod +x check-hirkn.sh
 ./check-hirkn.sh
 ```
