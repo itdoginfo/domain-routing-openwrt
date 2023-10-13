@@ -26,9 +26,9 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 
 - OpenWrt 21.02.7
 - OpenWrt 22.03.5
-- OpenWrt 23.05.0-rc2
+- OpenWrt 23.05.0
 
-## Выбор туннеля
+### Выбор туннеля
 - Wireguard настраивается автоматически через переменные
 - OpenVPN устанавливается пакет, настраивается роутинг и зона. Само подключение (скопировать конфиг и перезапустить openvpn) нужно [настроить вручную](https://itdog.info/nastrojka-klienta-openvpn-na-openwrt/)
 - Sing-box устанавливает пакет, настраивается роутинг и зона. Также кладётся темплейт в `/etc/sing-box/config.json`. Нужно настроить `config.json` и сделать `service sing-box restart`
@@ -42,7 +42,19 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 - singbox
 - tun2socks
 
-## Шифрование DNS
+В случае использования WG обязательно нужно задать:
+
+**wg_server_address** - ip/url wireguard сервера
+
+**wg_private_key**, **wg_public_key** - ключи для "клиента"
+
+**wg_client_address** - адрес роутера в wg сети
+
+Если ваш wg сервер использует preshared_key, то раскомментируйте **wg_preshared_key** и задайте ключ
+
+Остальное можно менять, в зависимости от того, как настроен wireguard сервер
+
+### Шифрование DNS
 Если ваш провайдер не подменяет DNS-запросы, ничего устанавливать не нужно.
 
 Для **dns_encrypt** три возможных значения:
@@ -50,20 +62,32 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 - stubby
 - false/закомментировано - пропуск, ничего не устанавливается и не настраивается
 
-## Выбор страны
+### Выбор страны
  Для **county** три [возможных значения](https://github.com/itdoginfo/allow-domains):
 - russia-inside
 - russia-outside
 - ukraine
 
-## Списки IP-адресов и домены
+### Списки IP-адресов и домены
+Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть
+
 Я советую использовать только домены
 ```
     list_domains: true
 ```
 Если вам требуются списки IP-адресов, они также поддерживаются.
 
-## Использование
+При использовании **list_domains** нужен пакет dnsmasq-full.
+
+Для 23.05 dnsmasq-full устанавливается автоматически.
+
+Для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Если это условие не выполнено, плейбук завершится с ошибкой.
+
+[Инструкция для OpenWrt 22.03](https://t.me/itdoginf/12)
+
+[Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
+
+### Использование
 
 Установить модуль gekmihesg/ansible-openwrt
 
@@ -87,51 +111,6 @@ rm -rf ansible-openwrt-hirkn README.md
 ```
 
 Подставить переменные в **hirkn.yml**
-```
-  vars:
-    ansible_template_dir: /etc/ansible/templates/
-    list_domains: true
-    list_subnet: false
-    list_ip: false
-    list_community: false
-    tunnel: wg
-    dns_encrypt: false
-    country: russia-inside
-
-    wg_server_address: wg-server-host
-    wg_private_key: privatekey-client
-    wg_public_key: publickey-client
-    #wg_preshared_key: presharedkey-client
-    wg_listen_port: 51820
-    wg_client_port: 51820
-    wg_client_address: ip-client
-```
-
-Обязательно нужно задать:
-
-Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть
-
-При использовании **list_domains** нужен пакет dnsmasq-full.
-
-Для 23.05 устанавливается автоматически.
-
-Для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Если это условие не выполнено, плейбук завершится с ошибкой.
-
-[Инструкция для OpenWrt 22.03](https://t.me/itdoginf/12)
-
-[Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
-
-В случае использования WG обязательно нужно задать:
-
-**wg_server_address** - ip/url wireguard сервера
-
-**wg_private_key**, **wg_public_key** - ключи для "клиента"
-
-**wg_client_address** - адрес роутера в wg сети
-
-Если ваш wg сервер использует preshared_key, то раскомментируйте **wg_preshared_key** и задайте ключ
-
-Остальное можно менять, в зависимости от того, как настроен wireguard сервер
 
 Запуск playbook
 ```
