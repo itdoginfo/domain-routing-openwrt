@@ -473,7 +473,7 @@
          loadfile: /tmp/lst/community.lst
     when: ansible_distribution_major_version >= "22" and list_community
 
-  - name: add ipset for domains (<22). If failed, check dnsmasq-full
+  - name: add ipset for domains (<22). If failed, repeat playbook. If failed is repeated check dnsmasq-full. 
     uci:
        command: section
        config: firewall
@@ -486,7 +486,7 @@
     failed_when: ansible_distribution_major_version < "22" and list_domains and not dnsmasqfull_version.stdout
     when: ansible_distribution_major_version < "22" and list_domains
 
-  - name: add nfset for domains (>=22). If failed, check dnsmasq-full
+  - name: add nfset for domains (>=22). If failed, repeat playbook. If failed is repeated check dnsmasq-full.
     uci:
        command: section
        config: firewall
