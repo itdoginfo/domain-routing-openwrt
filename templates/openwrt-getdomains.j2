@@ -1,0 +1,70 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+start () {
+    {% if ansible_distribution_major_version >= "22" and country == "russia-inside" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-dnsmasq-nfset.lst
+    {% endif %}
+    {% if ansible_distribution_major_version >= "22" and country == "russia-outside" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-dnsmasq-nfset.lst
+    {% endif %}
+    {% if ansible_distribution_major_version >= "22" and country == "ukraine" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Ukraine/inside-dnsmasq-nfset.lst
+    {% endif %}
+    {% if ansible_distribution_major_version < "22" and country == "russia-inside" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-dnsmasq-ipset.lst
+    {% endif %}
+    {% if ansible_distribution_major_version < "22" and country == "russia-outside" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/outside-dnsmasq-ipset.lst
+    {% endif %}
+    {% if ansible_distribution_major_version < "22" and country == "ukraine" %}
+    DOMAINS=https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Ukraine/inside-dnsmasq-ipset.lst
+    {% endif %}
+    count=0
+    while true; do
+        if curl -m 3 github.com; then
+            curl -f $DOMAINS --output /tmp/dnsmasq.d/domains.lst
+            break
+        else
+            echo "GitHub is not available. Check the internet availability [$count]"
+            count=$((count+1))
+        fi
+    done
+
+    if dnsmasq --conf-file=/tmp/dnsmasq.d/domains.lst --test 2>&1 | grep -q "syntax check OK"; then
+        /etc/init.d/dnsmasq restart
+    fi
+
+    {% if ansible_distribution_major_version >= "22" and (list_ip or list_community) %}
+    echo "Flush sets"
+    nft flush ruleset
+    {% endif %}
+
+    {% if list_subnet or list_ip or list_community %}
+    dir=/tmp/lst
+    mkdir -p $dir
+
+    count=0
+    while true; do
+        if curl -m 3 https://antifilter.download/; then
+            {% if list_subnet %}
+            curl -f -z $dir/subnet.lst https://antifilter.download/list/subnet.lst --output $dir/subnet.lst
+            {% endif %}
+            {% if list_ip %}
+            curl -f -z $dir/ip.lst https://antifilter.download/list/ip.lst --output $dir/ip.lst
+            {% endif %}
+            {% if list_community %}
+            curl -f -z $dir/community.lst https://community.antifilter.download/list/community.lst --output $dir/community.lst
+            {% endif %}  
+            break
+        else
+            echo "antifilter.download is not available. Check the internet availability [$count]"
+            count=$((count+1))
+        fi
+    done
+
+    echo "Firewall restart"
+    /etc/init.d/firewall restart
+    {% endif %}  
+}

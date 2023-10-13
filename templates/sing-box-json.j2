@@ -1,0 +1,28 @@
+{
+    "log": {
+      "level": "debug"
+    },
+    "inbounds": [
+      {
+        "type": "tun",
+        "interface_name": "tun0",
+        "domain_strategy": "ipv4_only",
+        "inet4_address": "172.19.0.1/30",
+        "auto_route": false,
+        "strict_route": false,
+        "sniff": true 
+     }
+    ],
+    "outbounds": [
+      {
+        "type": "$TYPE",
+        "server": "$HOST",
+        "server_port": $PORT,
+        "method": "$METHOD",
+        "password": "$PASS"
+      }
+    ],
+    "route": {
+      "auto_detect_interface": true
+    }
+  }

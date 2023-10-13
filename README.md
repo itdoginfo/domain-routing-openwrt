@@ -1,32 +1,70 @@
 # Описание
-Playbook для Ansible, автоматизирующий настройку обхода блокировок РКН через Wireguard на роутере с OpenWRT
+Shell скрипт и playbook для Ansible. Автоматизируют настройку OpenWrt роутера для обхода блокировок по доменам и спискам IP-адресов.
 
+Полное описание происходящего: [Статья на хабре](!!)
+
+## Скрипт для установки
+Запуск
+```
+!! wget bla bla
+```
+
+Подробности описаны в статье указаной выше.
+
+## Ansible
 Для взаимодействия c OpenWRT используется модуль [gekmihesg/ansible-openwrt](https://github.com/gekmihesg/ansible-openwrt)
 
-Списки берутся с [antifilter.download](https://antifilter.download/)
-
-Бонусом устанавливается и настраивается DNSCrypt2
-
-Полное описание происходящего: https://itdog.info/tochechnyj-obhod-blokirovok-rkn-na-routere-s-openwrt-s-pomoshhyu-wireguard-i-dnscrypt/
-
-И вот здесь: https://habr.com/ru/post/440030/
-
-Поиск ошибок:
-- https://itdog.info/tochechnyj-obhod-blokirovok-rkn-na-routere-s-openwrt-chast-2-poisk-i-ispravlenie-oshibok/
-- https://habr.com/ru/post/702388/
+Домены берутся из [отсюда](https://github.com/itdoginfo/allow-domains). Списки IP-адресов берутся с [antifilter.download](https://antifilter.download/)
 
 Тестировалось с
-- Ansible 2.9.27
-- OpenWrt 21.02.5
-- OpenWrt 22.03.3
+- Ansible 2.10.8
 
-# Использование
+- OpenWrt 21.02.7
+- OpenWrt 22.03.5
+- OpenWrt 23.05.0-rc2
 
-Для работы необходим wg сервер вне зоны действия РКН
+## Выбор туннеля
+- Wireguard настраивается автоматически через переменные
+- OpenVPN устанавливается пакет, настраивается роутинг и зона. Само подключение (скопировать конфиг и перезапустить openvpn) нужно [настроить вручную](https://itdog.info/nastrojka-klienta-openvpn-na-openwrt/)
+- Sing-box устанавливает пакет, настраивается роутинг и зона. Также кладётся темплейт в `/etc/sing-box/config.json`. Нужно настроить `config.json` и сделать `service sing-box restart`
+Не работает под 21ой версией. Поэтому при его выборе playbook выдаст ошибку.
+Для 22ой версии нужно установить пакет вручную.
+- tun2socks настраивается только роутинг и зона. Всё остальное нужно настроить вручную
+
+Для **tunnel** четыре возможных значения:
+- wg
+- openvpn
+- singbox
+- tun2socks
+
+## Шифрование DNS
+Если ваш провайдер не подменяет DNS-запросы, ничего устанавливать не нужно.
+
+Для **dns_encrypt** три возможных значения:
+- dnscrypt
+- stubby
+- false/закомментировано - пропуск, ничего не устанавливается и не настраивается
+
+## Выбор страны
+ Для **county** три [возможных значения](https://github.com/itdoginfo/allow-domains):
+- russia-inside
+- russia-outside
+- ukraine
+
+## Списки IP-адресов и домены
+Я советую использовать только домены
+```
+    list_domains: true
+```
+Если вам требуются списки IP-адресов, они также поддерживаются.
+
+## Использование
 
 Установить модуль gekmihesg/ansible-openwrt
 
-``` ansible-galaxy install gekmihesg.openwrt ```
+```
+ansible-galaxy install gekmihesg.openwrt
+```
 
 Скачать playbook и темплейты в /etc/ansible
 
@@ -47,43 +85,59 @@ rm -rf ansible-openwrt-hirkn README.md
 ```
   vars:
     ansible_template_dir: /etc/ansible/templates/
-    wg_server_address: wg_server_ip/url
+    list_domains: true
+    list_subnet: false
+    list_ip: false
+    list_community: false
+    tunnel: wg
+    dns_encrypt: false
+    country: russia-inside
+
+    wg_server_address: wg-server-host
     wg_private_key: privatekey-client
     wg_public_key: publickey-client
+    #wg_preshared_key: presharedkey-client
     wg_listen_port: 51820
     wg_client_port: 51820
-    wg_client_address: 192.168.100.3/24
-    download_utility: curl
-    list_subnet: true
-    list_ip: true
-    list_community: true
-    list_domains: false
+    wg_client_address: ip-client
 ```
 
 Обязательно нужно задать:
 
+Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть
+
+При использовании **list_domains** нужен пакет dnsmasq-full.
+
+Для 23.05 устанавливается автоматически.
+
+Для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Если это условие не выполнено, плейбук завершится с ошибкой.
+
+[Инструкция для OpenWrt 22.03](https://t.me/itdoginf/12)
+[Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
+
+В случае использования WG обязательно нужно задать:
 **wg_server_address** - ip/url wireguard сервера
 
 **wg_private_key**, **wg_public_key** - ключи для "клиента"
 
 **wg_client_address** - адрес роутера в wg сети
 
-Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть
-
-При использовании **list_domains** должен быть установлен пакет dnsmasq-full. А для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Инструкция по установке есть [в моём тг канале](https://t.me/itdoginf/12). Если это условие не выполнено, плейбук завершится с ошибкой
-
-Остальное можно менять, в зависимости от того как настроен wireguard сервер
-
 Если ваш wg сервер использует preshared_key, то раскомментируйте **wg_preshared_key** и задайте ключ
 
-**download_utility** можно использовать curl или wget. Curl не скачивает заново списки, если на роутере они ещё актуальны
+Остальное можно менять, в зависимости от того, как настроен wireguard сервер
 
 Запуск playbook
 ```
-ansible-playbook playbooks/hirkn.yml
+ansible-playbook playbooks/hirkn.yml --limit 192.168.1.1
 ```
 
-После выполнения playbook роутер сразу начнёт выполнять обход блокировок через Wireguard сервер.
+После выполнения playbook роутер сразу начнёт выполнять обход блокировок.
+
+Если у вас были ошибки и они исправились при повторном запуске playbook, но при этом обход не разработал, сделайте рестарт сети и скрипта:
+```
+service network restart
+service getdomains start
+```
 
 # Скрипт для проверки конфигурации
 
@@ -115,10 +169,8 @@ chmod +x check-hirkn.sh
 ./check-hirkn.sh dump
 ```
 
-# DNSCrypt-proxy2
+Поиск ошибок вручную: https://habr.com/ru/post/702388/
 
-Если у вас уже стоит dnscrypt-proxy первой версии, его необходимо удалить
-```
-opkg remove dnscrypt-proxy
-```
-Во второй версии есть отказоустойчивость из коробки.
+---
+
+[Telegram-канал с обновлениями](https://t.me/+lW1HmBO_Fa00M2Iy)
