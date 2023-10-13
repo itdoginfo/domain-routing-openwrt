@@ -4,9 +4,14 @@ Shell скрипт и playbook для Ansible. Автоматизируют на
 Полное описание происходящего: [Статья на хабре](!!)
 
 ## Скрипт для установки
-Запуск
+Запуск без скачивания
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh | sh
+sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh)
+```
+
+Запуск со скачиванием
+```
+wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh && sh getdomains-install.sh
 ```
 
 Подробности описаны в статье указаной выше.
@@ -113,9 +118,11 @@ rm -rf ansible-openwrt-hirkn README.md
 Для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Если это условие не выполнено, плейбук завершится с ошибкой.
 
 [Инструкция для OpenWrt 22.03](https://t.me/itdoginf/12)
+
 [Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
 
 В случае использования WG обязательно нужно задать:
+
 **wg_server_address** - ip/url wireguard сервера
 
 **wg_private_key**, **wg_public_key** - ключи для "клиента"
@@ -141,7 +148,7 @@ service getdomains start
 
 # Скрипт для проверки конфигурации
 
-Написан для OpenWrt 22.03. На 21.02 работает только половина проверок.
+Написан для OpenWrt 23.05 и 22.03. На 21.02 работает только половина проверок.
 
 [x] - не обязательно означает, что эта часть не работает. Но это повод для ручной проверки.
 
