@@ -172,7 +172,7 @@ if opkg list-installed | grep -q sing-box; then
     if [ "$IP_EXTERNAL" != $IP_VPN ]; then
         checkpoint_true "Sing-box. VPN IP: $IP_VPN"
     else
-        checkpoint_false "Sing-box. Check config: !!Add"
+        checkpoint_false "Sing-box. Check config: https://cli.co/Badmn3K"
     fi
 else
     checkpoint_false "Sing-box package"
@@ -192,7 +192,7 @@ if which tun2socks | grep -q tun2socks; then
     if [ "$IP_EXTERNAL" != $IP_VPN ]; then
         checkpoint_true "tun2socks. VPN IP: $IP_VPN"
     else
-        checkpoint_false "tun2socks. Check config: !!Add"
+        checkpoint_false "tun2socks. Check config: https://cli.co/VNZISEM"
     fi
 else
     checkpoint_false "tun2socks package"

@@ -201,7 +201,7 @@ cat << 'EOF' > /etc/sing-box/config.json
 EOF
         printf "\033[32;1mCreate template config in /etc/sing-box/config.json. Edit it manually. Official doc: https://sing-box.sagernet.org/configuration/outbound/\033[0m\n"
         printf "\033[32;1mOfficial doc: https://sing-box.sagernet.org/configuration/outbound/\033[0m\n"
-        printf "\033[32;1mManual with example SS: LINK STATYA \033[0m\n"
+        printf "\033[32;1mManual with example SS: https://cli.co/Badmn3K \033[0m\n"
 
         fi
         printf "\033[32;1mConfigure route for Sing-box\033[0m\n"
@@ -316,7 +316,7 @@ add_zone() {
 show_manual() {
     if [ "$TUNNEL" == tun2socks ]; then
         printf "\033[42;1mZone for tun2socks cofigured. But you need to set up the tunnel yourself.\033[0m\n"
-        echo "Use this manual: LINK singbox"
+        echo "Use this manual: https://cli.co/VNZISEM"
     elif [ "$TUNNEL" == ovpn ]; then
         printf "\033[42;1mZone for OpenVPN cofigured. But you need to set up the tunnel yourself.\033[0m\n"
         echo "Use this manual: https://itdog.info/nastrojka-klienta-openvpn-na-openwrt/"
