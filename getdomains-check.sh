@@ -357,7 +357,7 @@ if opkg list-installed | grep -q stubby; then
         checkpoint_true "Stubby service"
     else
         checkpoint_false "Stubby service"
-        echo "Check config: !!Add link"
+        echo "Check config: https://cli.co/HbDBT2V"
         output_21
     fi
 
@@ -366,7 +366,7 @@ if opkg list-installed | grep -q stubby; then
         checkpoint_true "Dnsmasq config for Stubby"
     else
         checkpoint_false "Dnsmasq config for Stubby"
-        echo "Check config: !!Add link"
+        echo "Check config: https://cli.co/HbDBT2V"
     fi
 else
     checkpoint_false "Stubby package"
