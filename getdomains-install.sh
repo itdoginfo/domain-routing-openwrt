@@ -217,7 +217,7 @@ dnsmasqfull() {
         cd /tmp/ && opkg download dnsmasq-full
         opkg remove dnsmasq && opkg install dnsmasq-full --cache /tmp/
 
-        [ -f /etc/config/dhcp-opkg ] && cp etc/config/dhcp etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
+        [ -f /etc/config/dhcp-opkg ] && cp /etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
 fi
 }
 
