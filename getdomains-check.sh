@@ -388,6 +388,80 @@ if [[ "$1" == dump ]]; then
     echo "For Windows use PSCP or WSL"
 fi
 
+# Check DNS
+if [[ "$1" == dns ]]; then
+    printf "\033[36;1mCheck DNS servers\033[0m\n"
+    DNS_SERVERS="1.1.1.1 8.8.8.8 8.8.4.4"
+    DOH_DNS_SERVERS="cloudflare-dns.com 1.1.1.1 mozilla.cloudflare-dns.com security.cloudflare-dns.com"
+    DOMAINS="instagram.com facebook.com"
+
+    echo "1. Block DNS traffic (Port 53/udp is available)"
+
+    for i in $DNS_SERVERS;
+    do
+        if nslookup -type=a -timeout=2 -retry=1 itdog.info $i | grep -q "timed out"; then
+            checkpoint_false "$i"
+        else
+            checkpoint_true "$i"
+        fi
+    done
+
+    echo "2. DoH available"
+
+    for i in $DOH_DNS_SERVERS;
+    do
+        if curl --connect-timeout 5 -s -H "accept: application/dns-json" "https://$i/dns-query?name=itdog.info&type=A" | awk -F"data\":\"" '/data":"/{print $2}' | grep -q -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+            checkpoint_true "$i"
+        else
+            checkpoint_false "$i"
+        fi
+    done
+
+    echo "3. The response not contains an address from 127.0.0.0/8"
+
+    for i in $DOMAINS;
+    do
+        if nslookup -type=a -timeout=2 -retry=1 $i | awk '/^Address: / {print $2}' | grep -q -E '127\.[0-9]{1,3}\.'; then
+            checkpoint_false "$i"
+        else
+            checkpoint_true "$i"
+        fi
+    done
+
+    echo "4. One IP for two different domains"
+
+    FIRSTIP=$(nslookup -type=a instagram.com | awk '/^Address: / {print $2}')
+    SECONDIP=$(nslookup -type=a facebook.com | awk '/^Address: / {print $2}')
+
+    if [ "$FIRSTIP" = "$SECONDIP" ] ; then 
+        checkpoint_false "IP addresses are the same"
+    else
+        checkpoint_true "Different IP addresses"
+    fi
+
+    echo "5. The response is not blank"
+
+    for i in $DOMAINS;
+    do
+        if nslookup -type=a -timeout=2 -retry=1 $i | awk '/^Address: / {print $2}' | grep -q -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+            checkpoint_true "$i"
+        else
+            checkpoint_false "$i"
+        fi
+    done
+
+    echo "6. Сomparing response from unencrypted DNS and DoH (DNS poisoning)"
+
+    DOHIP=$(curl -s -H "accept: application/dns-json" "https://1.1.1.1/dns-query?name=facebook.com&type=A" | awk -F"data\":\"" '/data":"/{print $2}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+    OPENIP=$(nslookup -type=a -timeout=2 facebook.com 1.1.1.1 | awk '/^Address: / {print $2}')
+
+    if [ "$DOHIP" = "$OPENIP" ]; then 
+        checkpoint_true "IPs match"
+    else
+        checkpoint_false "IPs not match"
+    fi
+fi
+
 # Info
 echo -e "\nTelegram channel: https://t.me/itdoginfo"
 echo "Telegram chat: https://t.me/itdogchat"

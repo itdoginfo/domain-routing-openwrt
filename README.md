@@ -140,6 +140,11 @@ service getdomains start
 wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh
 ```
 
+### Запустить с проверкой на подмену DNS
+```
+wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh -s dns
+```
+
 ### Запустить с созданием dump
 ```
 wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh -s dump
