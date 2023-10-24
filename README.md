@@ -114,6 +114,10 @@ rm -rf ansible-openwrt-hirkn README.md
 
 Подставить переменные в **hirkn.yml**
 
+Для работы Ansible c OpenWrt необходимо, чтоб было выполнено одно из условий:
+- Отсутствие пароля для root (не рекомендуется)
+- Настроен доступ через публичный SSH-ключ в [конфиге dropbear](https://openwrt.org/docs/guide-user/security/dropbear.public-key.auth)
+
 Запуск playbook
 ```
 ansible-playbook playbooks/hirkn.yml --limit 192.168.1.1
