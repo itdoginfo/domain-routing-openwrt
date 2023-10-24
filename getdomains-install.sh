@@ -406,6 +406,7 @@ add_dns_resolver() {
                 uci set dhcp.@dnsmasq[0].noresolv="1"
                 uci -q delete dhcp.@dnsmasq[0].server
                 uci add_list dhcp.@dnsmasq[0].server="127.0.0.53#53"
+                uci add_list dhcp.@dnsmasq[0].server='/use-application-dns.net/'
                 uci commit dhcp
                 
                 printf "\033[32;1mDnsmasq restart\033[0m\n"
@@ -431,6 +432,7 @@ add_dns_resolver() {
             uci set dhcp.@dnsmasq[0].noresolv="1"
             uci -q delete dhcp.@dnsmasq[0].server
             uci add_list dhcp.@dnsmasq[0].server="127.0.0.1#5453"
+            uci add_list dhcp.@dnsmasq[0].server='/use-application-dns.net/'
             uci commit dhcp
 
             printf "\033[32;1mDnsmasq restart\033[0m\n"
@@ -533,7 +535,7 @@ cat << 'EOF' >> /etc/init.d/getdomains
 EOF
 
         chmod +x /etc/init.d/getdomains
-        ln -sf ../init.d/getdomains /etc/rc.d/S99getdomains
+        /etc/init.d/getdomains enable
 
         if crontab -l | grep -q /etc/init.d/getdomains; then
             printf "\033[32;1mCrontab already configured\033[0m\n"
