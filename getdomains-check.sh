@@ -54,6 +54,15 @@ else
     fi
 fi
 
+# Chek xray package
+if opkg list-installed | grep -q xray-core; then
+    checkpoint_false "Xray-core package detected"
+fi
+
+if opkg list-installed | grep -q luci-app-xray; then
+    checkpoint_false "luci-app-xray package detected. Not compatible. For delete: opkg remove luci-app-xray --force-removal-of-dependent-packages"
+fi
+
 # Check dnsmasq
 DNSMASQ_RUN=$(service dnsmasq status | grep -c 'running')
 if [ $DNSMASQ_RUN -eq 1 ]; then
@@ -76,6 +85,12 @@ if curl -Is https://community.antifilter.download/ | grep -q 200; then
         echo "Check internet connection. If ok, check date on router. Details: https://cli.co/2EaW4rO"
         echo "For more info run: curl -Is https://community.antifilter.download/"
     fi
+fi
+
+# Check IPv6
+
+if curl -6 -s https://ifconfig.io | egrep -q "(::)?[0-9a-fA-F]{1,4}(::?[0-9a-fA-F]{1,4}){1,7}(::)?"; then
+    checkpoint_false "IPv6 detected. This script does not currently work with IPv6"
 fi
 
 # Tunnels
@@ -162,6 +177,13 @@ fi
 if opkg list-installed | grep -q sing-box; then
     checkpoint_true "Sing-box package"
 
+    # Check route table
+    if ip route show table vpn | grep -q "default dev tun0 scope link"; then
+        checkpoint_true "Route table Sing-box"
+    else
+        checkpoint_false "Route table Sing-box. Try service network restart. Details: https://cli.co/n7xAbc1"
+    fi
+
     IP_EXTERNAL=$(curl -s ifconfig.me)
     IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
 
@@ -181,6 +203,13 @@ fi
 
 if which tun2socks | grep -q tun2socks; then
     checkpoint_true "tun2socks package"
+
+    # Check route table
+    if ip route show table vpn | grep -q "default dev tun0 scope link"; then
+        checkpoint_true "Route table tun2socks"
+    else
+        checkpoint_false "Route table tun2socks. Try service network restart. Details: https://cli.co/n7xAbc1"
+    fi
 
     IP_EXTERNAL=$(curl -s ifconfig.me)
     IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
