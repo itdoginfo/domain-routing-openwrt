@@ -179,7 +179,7 @@ cat << 'EOF' > /etc/sing-box/config.json
       "type": "tun",
       "interface_name": "tun0",
       "domain_strategy": "ipv4_only",
-      "inet4_address": "172.19.0.1/30",
+      "inet4_address": "172.16.250.1/30",
       "auto_route": false,
       "strict_route": false,
       "sniff": true 
