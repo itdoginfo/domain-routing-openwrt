@@ -541,7 +541,7 @@ EOF
             printf "\033[32;1mCrontab already configured\033[0m\n"
 
         else
-            crontab -l | { cat; echo "0 */8 * * * /etc/init.d/getdomains"; } | crontab -
+            crontab -l | { cat; echo "0 */8 * * * /etc/init.d/getdomains start"; } | crontab -
             printf "\033[32;1mIgnore this error. This is normal for a new installation\033[0m\n"
             /etc/init.d/cron restart
         fi
