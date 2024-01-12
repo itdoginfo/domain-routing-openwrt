@@ -18,7 +18,7 @@ EOF
 cat << EOF > /etc/hotplug.d/iface/30-rknroute
 #!/bin/sh
 
-sleep 5
+sleep 10
 ip route add table vpn default dev tun0
 EOF
     fi
@@ -107,9 +107,9 @@ add_tunnel() {
 
         read -r -p "Enter the public key (from [Peer]):"$'\n' WG_PUBLIC_KEY
         read -r -p "If use PresharedKey, Enter this (from [Peer]). If your don't use leave blank:"$'\n' WG_PRESHARED_KEY
-        read -r -p "Enter Enpoint host without port (Domain or IP) (from [Peer]):"$'\n' WG_ENDPOINT
+        read -r -p "Enter Endpoint host without port (Domain or IP) (from [Peer]):"$'\n' WG_ENDPOINT
 
-        read -r -p "Enter Enpoint host port (from [Peer]) [51820]:"$'\n' WG_ENDPOINT_PORT
+        read -r -p "Enter Endpoint host port (from [Peer]) [51820]:"$'\n' WG_ENDPOINT_PORT
         WG_ENDPOINT_PORT=${WG_ENDPOINT_PORT:-51820}
         if [ "$WG_ENDPOINT_PORT" = '51820' ]; then
             echo $WG_ENDPOINT_PORT
