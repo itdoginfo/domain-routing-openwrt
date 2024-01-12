@@ -28,7 +28,7 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 
 - OpenWrt 21.02.7
 - OpenWrt 22.03.5
-- OpenWrt 23.05.0
+- OpenWrt 23.05.2
 
 ### Выбор туннеля
 - Wireguard настраивается автоматически через переменные
@@ -56,6 +56,8 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 
 Остальное можно менять, в зависимости от того, как настроен wireguard сервер
 
+**wg_access** и **wg_access_network** для доступа к роутеру через WG
+
 ### Шифрование DNS
 Если ваш провайдер не подменяет DNS-запросы, ничего устанавливать не нужно.
 
@@ -69,6 +71,8 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 - russia-inside
 - russia-outside
 - ukraine
+
+### 
 
 ### Списки IP-адресов и домены
 Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть

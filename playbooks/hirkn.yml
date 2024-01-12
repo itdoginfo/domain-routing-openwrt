@@ -16,6 +16,7 @@
     tunnel: wg
     dns_encrypt: false
     country: russia-inside
+    nano: true
 
     wg_server_address: wg-server-host
     wg_private_key: privatekey-client
@@ -24,6 +25,8 @@
     wg_listen_port: 51820
     wg_client_port: 51820
     wg_client_address: ip-client
+    wg_access: false
+    wg_access_network: wg-network (for example: 192.168.10.0/24)
 
   tasks:
 # Dnsmasq version check
@@ -63,13 +66,20 @@
         - sing-box
     when: tunnel == "singbox" and ansible_distribution_major_version >= "23"
 
-  - name: install curl and nano
+  - name: install curl
     opkg:
       name: "{{ item }}"
       state: present
     loop:
         - curl
+
+  - name: install nano
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
         - nano
+    when: nano
 
   - name: install ipset
     opkg:
@@ -120,56 +130,6 @@
       enabled: yes
       
 # Configure route table
-      
-  # - name: Create vpn0 interface
-  #   uci:
-  #     command: section
-  #     config: network
-  #     type: interface
-  #     find_by:
-  #       name: vpn0
-  #     name: vpn0
-  #     value:
-  #       name: vpn0
-  #       proto: none
-  #       auto: 1
-  #       device: tun0
-  #   when: tunnel == "openvpn" or tunnel == "singbox" or tunnel == "tun2socks"
-  #   notify:
-  #     - Restart network
-
-  # - name: tunnel routing. tun0
-  #   uci:
-  #     command: section
-  #     config: network
-  #     type: route
-  #     find_by:
-  #       name: vpn_route
-  #     name: vpn_route
-  #     value:
-  #       name: vpn_route
-  #       interface: vpn0
-  #       table: vpn
-  #       target: 0.0.0.0/0
-  #   when: tunnel == "openvpn" or tunnel == "singbox" or tunnel == "tun2socks"
-  #   notify:
-  #     - Restart network
-
-  # - name: tunnel routing. wg0
-  #   uci:
-  #     command: section
-  #     config: network
-  #     type: route
-  #     find_by:
-  #       name: vpn
-  #     name: vpn_route
-  #     value:
-  #       interface: wg0
-  #       table: vpn
-  #       target: 0.0.0.0/0
-  #   when: tunnel == "wg"
-  #   notify:
-  #     - Restart network
 
   - name: Route for vpn table
     template:
@@ -483,7 +443,6 @@
        value:
          match: dst_net
          storage: hash
-    failed_when: ansible_distribution_major_version < "22" and list_domains and not dnsmasqfull_version.stdout
     when: ansible_distribution_major_version < "22" and list_domains
 
   - name: add nfset for domains (>=22). If failed, repeat playbook. If failed is repeated check dnsmasq-full.
@@ -495,7 +454,6 @@
          name: vpn_domains
        value:
          match: dst_net
-    failed_when: ansible_distribution_major_version >= "22" and list_domains and (not dnsmasqfull_version.stdout or dnsmasqfull_version.stdout < "2.87")
     when: ansible_distribution_major_version >= "22" and list_domains
 
   - name: add mark rule vpn_subnet
@@ -564,7 +522,30 @@
          set_mark: "0x1"
          target: MARK
          family: ipv4
-    when: (ansible_distribution_major_version < "22" and list_domains and dnsmasqfull_version.stdout) or (ansible_distribution_major_version >= "22" and list_domains and dnsmasqfull_version.stdout >= "2.87")
+    when: (ansible_distribution_major_version < "22" and list_domains) or (ansible_distribution_major_version >= "22" and list_domains)
+
+  - name: wg access route
+    uci:
+      command: section
+      config: network
+      type: route
+      find_by:
+        name: wg_access_route
+      value:
+        interface: wg0
+        target: "{{ wg_access_network }}"
+    when: wg_access
+
+  - name: set WG firewall zone 
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: wg
+      value:
+        input: ACCEPT
+    when: wg_access
 
 # Remove unused rules and ipset
   - name: Remove ipset for ip
