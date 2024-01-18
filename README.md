@@ -56,7 +56,7 @@ wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/ge
 
 Остальное можно менять, в зависимости от того, как настроен wireguard сервер
 
-**wg_access** и **wg_access_network** для доступа к роутеру через WG
+**wg_access** и **wg_access_network** для доступа к роутеру через WG. Переменная wg_access_network должна иметь значение подсети, например 192.168.10.0/24.
 
 ### Шифрование DNS
 Если ваш провайдер не подменяет DNS-запросы, ничего устанавливать не нужно.
