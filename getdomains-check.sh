@@ -250,7 +250,7 @@ if [ $((vpn_domain_ipset_string + vpn_domain_rule_string)) -eq 10 ]; then
     else
         checkpoint_false "IPs in vpn_domains"
         echo "If you don't use vpn_domains, it's OK"
-        echo "But if you want use, check configs"
+        echo "But if you want use, check configs. And run `service getdomains start`"
         output_21
     fi
 else
