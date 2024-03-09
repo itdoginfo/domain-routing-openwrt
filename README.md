@@ -8,12 +8,12 @@ Shell скрипт и playbook для Ansible. Автоматизируют на
 ## Скрипт для установки
 Запуск без скачивания
 ```
-sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh)
+sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh)
 ```
 
 Запуск со скачиванием
 ```
-wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-install.sh && sh getdomains-install.sh
+wget https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh && sh getdomains-install.sh
 ```
 
 Подробности описаны в статье указаной выше.
@@ -105,9 +105,9 @@ ansible-galaxy install gekmihesg.openwrt
 
 ```
 cd /etc/ansible
-git clone https://github.com/itdoginfo/ansible-openwrt-hirkn
-mv ansible-openwrt-hirkn/* .
-rm -rf ansible-openwrt-hirkn README.md
+git clone https://github.com/itdoginfo/domain-routing-openwrt
+mv domain-routing-openwrt/* .
+rm -rf domain-routing-openwrt README.md
 ```
 
 Добавить роутер в файл hosts в группу openwrt
@@ -116,7 +116,7 @@ rm -rf ansible-openwrt-hirkn README.md
 192.168.1.1
 ```
 
-Подставить переменные в **hirkn.yml**
+Подставить переменные в **hivpn.yml**
 
 Для работы Ansible c OpenWrt необходимо, чтоб было выполнено одно из условий:
 - Отсутствие пароля для root (не рекомендуется)
@@ -124,12 +124,12 @@ rm -rf ansible-openwrt-hirkn README.md
 
 Запуск playbook
 ```
-ansible-playbook playbooks/hirkn.yml --limit 192.168.1.1
+ansible-playbook playbooks/hivpn.yml --limit 192.168.1.1
 ```
 
-После выполнения playbook роутер сразу начнёт выполнять обход блокировок.
+После выполнения playbook роутер сразу начнёт роутить необходмые домены в туннель/прокси.
 
-Если у вас были ошибки и они исправились при повторном запуске playbook, но при этом обход не разработал, сделайте рестарт сети и скрипта:
+Если у вас были ошибки и они исправились при повторном запуске playbook, но при этом роутинг не заработал, сделайте рестарт сети и скрипта:
 ```
 service network restart
 service getdomains start
@@ -145,29 +145,29 @@ service getdomains start
 
 ### Запуск
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh
+wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh
 ```
 
 ### Запустить с проверкой на подмену DNS
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh -s dns
+wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dns
 ```
 
 ### Запустить с созданием dump
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh | sh -s dump
+wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dump
 ```
 
 ### Скачать и потом запустить
 ```
-wget https://raw.githubusercontent.com/itdoginfo/ansible-openwrt-hirkn/master/getdomains-check.sh
-chmod +x check-hirkn.sh
-./check-hirkn.sh
+wget https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh
+chmod +x getdomains-check.sh
+./getdomains-check.sh
 ```
 
 С созданием dump
 ```
-./check-hirkn.sh dump
+./getdomains-check.sh dump
 ```
 
 Поиск ошибок вручную: https://habr.com/ru/post/702388/

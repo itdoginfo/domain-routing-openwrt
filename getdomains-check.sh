@@ -1,6 +1,6 @@
 #!/bin/sh
 
-HIRKN=/etc/init.d/hirkn
+HIVPN=/etc/init.d/hivpn
 GETDOMAINS=/etc/init.d/getdomains
 DUMP=/tmp/dump.txt
 
@@ -326,18 +326,18 @@ else
     output_21
 fi
 
-# hirkn script
-if [ -s "$HIRKN" ]; then
-    checkpoint_true "Script hirkn"
-    if crontab -l | grep -q $HIRKN; then
-        checkpoint_true "Script hirkn in crontab"
+# hivpn script
+if [ -s "$HIVPN" ]; then
+    checkpoint_true "Script hivpn"
+    if crontab -l | grep -q $HIVPN; then
+        checkpoint_true "Script hivpn in crontab"
     else
-        checkpoint_false "Script hirkn in crontab"
+        checkpoint_false "Script hivpn in crontab"
         echo "Script is not enabled in crontab. Check: crontab -l"
     fi
 else
-    checkpoint_false "Script hirkn"
-    echo "Script don't exists in $HIRKN. If you don't use old hirkn script, it's OK"
+    checkpoint_false "Script hivpn"
+    echo "Script don't exists in $HIVPN. If you don't use old hivpn script, it's OK"
 fi
 
 # getdomains script
@@ -406,7 +406,7 @@ fi
 if [[ "$1" == dump ]]; then
     printf "\033[36;1mCreate dump without private variables\033[0m\n"
     date > $DUMP
-    $HIRKN start >> $DUMP 2>&1
+    $HIVPN start >> $DUMP 2>&1
     $GETDOMAINS start >> $DUMP 2>&1
     uci show firewall >> $DUMP
     uci show network | sed -r 's/(.*private_key=|.*preshared_key=|.*public_key=|.*endpoint_host=|.*wan.ipaddr=|.*wan.netmask=|.*wan.gateway=|.*wan.dns|.*.macaddr=).*/\1REMOVED/' >> $DUMP

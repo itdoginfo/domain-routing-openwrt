@@ -133,8 +133,8 @@
 
   - name: Route for vpn table
     template:
-      src: "{{ ansible_template_dir }}openwrt-30-rknroute.j2"
-      dest: "/etc/hotplug.d/iface/30-rknroute"
+      src: "{{ ansible_template_dir }}openwrt-30-vpnroute.j2"
+      dest: "/etc/hotplug.d/iface/30-vpnroute"
       mode: 0644
 
   - name: Check string in rt_tables
