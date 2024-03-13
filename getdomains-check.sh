@@ -184,12 +184,18 @@ if opkg list-installed | grep -q sing-box; then
         checkpoint_false "Route table Sing-box. Try service network restart. Details: https://cli.co/n7xAbc1"
     fi
 
+    # Sing-box uci validation
+    if uci show sing-box 2>&1 | grep -q "Parse error"; then
+        checkpoint_false "Sing-box UCI config. Check /etc/config/sing-box"
+    else
+        checkpoint_true "Sing-box UCI config"
+    fi    
+
+    # Check traffic
     IP_EXTERNAL=$(curl -s ifconfig.me)
     IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
 
-    ip route add $IFCONFIG via 172.19.0.1 dev tun0
-    IP_VPN=$(curl -s ifconfig.me)
-    ip route del $IFCONFIG via 172.19.0.1 dev tun0
+    IP_VPN=$(curl --interface tun0 -s ifconfig.me)
 
     if [ "$IP_EXTERNAL" != $IP_VPN ]; then
         checkpoint_true "Sing-box. VPN IP: $IP_VPN"
@@ -214,9 +220,7 @@ if which tun2socks | grep -q tun2socks; then
     IP_EXTERNAL=$(curl -s ifconfig.me)
     IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
 
-    ip route add $IFCONFIG via 172.16.250.1 dev tun0
-    IP_VPN=$(curl -s ifconfig.me)
-    ip route del $IFCONFIG via 172.16.250.1 dev tun0
+    IP_VPN=$(curl --interface tun0 -s ifconfig.me)
 
     if [ "$IP_EXTERNAL" != $IP_VPN ]; then
         checkpoint_true "tun2socks. VPN IP: $IP_VPN"
