@@ -11,11 +11,6 @@ Shell скрипт и playbook для Ansible. Автоматизируют на
 sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh)
 ```
 
-Запуск со скачиванием
-```
-wget https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh && sh getdomains-install.sh
-```
-
 Подробности описаны в статье указаной выше.
 
 ## Ansible
@@ -156,18 +151,6 @@ wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/mas
 ### Запустить с созданием dump
 ```
 wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dump
-```
-
-### Скачать и потом запустить
-```
-wget https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh
-chmod +x getdomains-check.sh
-./getdomains-check.sh
-```
-
-С созданием dump
-```
-./getdomains-check.sh dump
 ```
 
 Поиск ошибок вручную: https://habr.com/ru/post/702388/

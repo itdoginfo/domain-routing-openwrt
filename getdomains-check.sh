@@ -93,14 +93,16 @@ if curl -6 -s https://ifconfig.io | egrep -q "(::)?[0-9a-fA-F]{1,4}(::?[0-9a-fA-
     checkpoint_false "IPv6 detected. This script does not currently work with IPv6"
 fi
 
+# PPPoE
+if uci show network.wan.proto | grep -q "pppoe"; then
+    checkpoint_false "PPPoE is used. That could be a problem"
+fi
+
 # Tunnels
 WIREGUARD=$(opkg list-installed | grep -c wireguard-tools )
 if [ $WIREGUARD -eq 1 ]; then
     checkpoint_true "Wireguard-tools package"
     WG=true
-else
-    checkpoint_false "Wireguard-tools package"
-    echo "If you don't use WG it's OK"
 fi
 
 if [ "$WG" == true ]; then
@@ -139,9 +141,6 @@ fi
 if opkg list-installed | grep -q openvpn; then
     checkpoint_true "OpenVPN package"
     OVPN=true
-else
-    checkpoint_false "OpenVPN package"
-    echo "If you don't use OpenVPN it's OK"
 fi
 
 # Check OpenVPN
@@ -202,9 +201,6 @@ if opkg list-installed | grep -q sing-box; then
     else
         checkpoint_false "Sing-box. Check config: https://cli.co/Badmn3K"
     fi
-else
-    checkpoint_false "Sing-box package"
-    echo "If you don't use sing-box it's OK"
 fi
 
 if which tun2socks | grep -q tun2socks; then
@@ -227,9 +223,6 @@ if which tun2socks | grep -q tun2socks; then
     else
         checkpoint_false "tun2socks. Check config: https://cli.co/VNZISEM"
     fi
-else
-    checkpoint_false "tun2socks package"
-    echo "If you don't use tun2socks it's OK"
 fi
 
 # Check sets
@@ -279,10 +272,9 @@ if [ $((vpn_ip_ipset_string + vpn_ip_rule_string)) -eq 11 ]; then
         echo "But if you want use, check configs"
         output_21
     fi
-else
-    checkpoint_false "vpn_ip set"
-    echo "If you don't use vpn_ip set, it's OK"
-    echo "But if you want use, check config: https://cli.co/AwUGeM6"
+elif uci show firewall | grep -q "vpn_ip"; then
+        checkpoint_false "vpn_ip set"
+        echo "Check config: https://cli.co/AwUGeM6"
 fi
 
 # vpn_subnet set
@@ -301,10 +293,9 @@ if [ $((vpn_subnet_ipset_string + vpn_subnet_rule_string)) -eq 11 ]; then
         echo "But if you want use, check configs"
         output_21
     fi
-else
-    checkpoint_false "vpn_subnet set"
-    echo "If you don't use vpn_subnet set, it's OK"
-    echo "But if you want use, check config: https://cli.co/AwUGeM6"
+elif uci show firewall | grep -q "vpn_subnet"; then
+        checkpoint_false "vpn_subnet set"
+        echo "Check config: https://cli.co/AwUGeM6"
 fi
 
 # vpn_community set
@@ -323,25 +314,9 @@ if [ $((vpn_community_ipset_string + vpn_community_rule_string)) -eq 11 ]; then
         echo "But if you want use, check configs"
         output_21
     fi
-else
-    checkpoint_false "vpn_community set"
-    echo "If you don't use vpn_community set, it's OK"
-    echo "But if you want use, check config: https://cli.co/AwUGeM6"
-    output_21
-fi
-
-# hivpn script
-if [ -s "$HIVPN" ]; then
-    checkpoint_true "Script hivpn"
-    if crontab -l | grep -q $HIVPN; then
-        checkpoint_true "Script hivpn in crontab"
-    else
-        checkpoint_false "Script hivpn in crontab"
-        echo "Script is not enabled in crontab. Check: crontab -l"
-    fi
-else
-    checkpoint_false "Script hivpn"
-    echo "Script don't exists in $HIVPN. If you don't use old hivpn script, it's OK"
+elif uci show firewall | grep -q "vpn_community"; then
+        checkpoint_false "vpn_community set"
+        echo "Check config: https://cli.co/AwUGeM6"
 fi
 
 # getdomains script
@@ -378,9 +353,6 @@ if opkg list-installed | grep -q dnscrypt-proxy2; then
         checkpoint_false "Dnsmasq config for DNSCrypt"
         echo "Check config: https://cli.co/rooc0uz"
     fi
-else
-    checkpoint_false "Dnscrypt-proxy2 package"
-    echo "If you don't use Dnscrypt, it's OK"
 fi
 
 # Stubby
@@ -401,9 +373,6 @@ if opkg list-installed | grep -q stubby; then
         checkpoint_false "Dnsmasq config for Stubby"
         echo "Check config: https://cli.co/HbDBT2V"
     fi
-else
-    checkpoint_false "Stubby package"
-    echo "If you don't use Stubby, it's OK"
 fi
 
 # Create dump
