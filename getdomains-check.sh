@@ -23,6 +23,7 @@ MODEL=$(grep machine /proc/cpuinfo | cut -d ':' -f 2)
 RELEASE=$(grep OPENWRT_RELEASE /etc/os-release | awk -F '"' '{print $2}')
 printf "\033[34;1mModel:$MODEL\033[0m\n"
 printf "\033[34;1mVersion: $RELEASE\033[0m\n"
+printf "\033[34;1mDate: $(date)\033[0m\n"
 
 VERSION_ID=$(grep VERSION_ID /etc/os-release | awk -F '"' '{print $2}' | awk -F. '{print $1}')
 RAM=$(free -m | grep Mem: | awk '{print $2}')
