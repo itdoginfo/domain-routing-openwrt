@@ -130,7 +130,7 @@ if [ "$WG" == true ]; then
     fi
 
     # Check route table
-    ROUTE_TABLE=$(ip route show table vpn | grep -c "default dev wg0 scope link" )
+    ROUTE_TABLE=$(ip route show table vpn | grep -c "default dev wg0" )
     if [ $ROUTE_TABLE -eq 1 ]; then
         checkpoint_true "Route table WG"
     else
@@ -166,7 +166,7 @@ if [ "$OVPN" == true ]; then
     fi
 
     # Check route table
-    if ip route show table vpn | grep -q "default dev tun0 scope link"; then
+    if ip route show table vpn | grep -q "default dev tun0"; then
         checkpoint_true "Route table OpenVPN"
     else
         checkpoint_false "Route table OpenVPN"
@@ -178,7 +178,7 @@ if opkg list-installed | grep -q sing-box; then
     checkpoint_true "Sing-box package"
 
     # Check route table
-    if ip route show table vpn | grep -q "default dev tun0 scope link"; then
+    if ip route show table vpn | grep -q "default dev tun0"; then
         checkpoint_true "Route table Sing-box"
     else
         checkpoint_false "Route table Sing-box. Try service network restart. Details: https://cli.co/n7xAbc1"
@@ -208,7 +208,7 @@ if which tun2socks | grep -q tun2socks; then
     checkpoint_true "tun2socks package"
 
     # Check route table
-    if ip route show table vpn | grep -q "default dev tun0 scope link"; then
+    if ip route show table vpn | grep -q "default dev tun0"; then
         checkpoint_true "Route table tun2socks"
     else
         checkpoint_false "Route table tun2socks. Try service network restart. Details: https://cli.co/n7xAbc1"
