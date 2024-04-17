@@ -1,0 +1,26 @@
+---
+  - name: Restart network
+    service:
+      name: network
+      state: restarted
+
+  - name: Restart firewall
+    service:
+      name: firewall
+      state: restarted
+
+  - name: Run getdomains script
+    service:
+      name: getdomains
+      state: restarted
+
+  - name: Restart dnscrypt-proxy
+    service:
+      name: dnscrypt-proxy
+      state: restarted
+      enabled: yes
+      
+  - name: Restart dnsmasq
+    service:
+      name: dnsmasq
+      state: restarted

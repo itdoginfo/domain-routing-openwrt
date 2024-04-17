@@ -1,0 +1,8 @@
+#!/bin/sh
+
+{% if tunnel == "wg" %}
+ip route add table vpn default dev wg0
+{% elif (tunnel == "openvpn") or (tunnel == "singbox") or (tunnel == "tun2socks") %}
+sleep 10
+ip route add table vpn default dev tun0
+{% endif %}

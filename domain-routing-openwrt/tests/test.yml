@@ -1,0 +1,6 @@
+---
+- hosts: openwrt
+  remote_user: root
+
+  roles:
+    - domain-routing-openwrt

@@ -1,0 +1,21 @@
+name: Public to Ansible Galaxy
+
+on:
+  push:
+    branches: [ "role" ]
+    paths:
+      - .github/**
+      - domain-routing-openwrt/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: galaxy
+        uses: robertdebock/galaxy-action@1.2.0
+        with:
+          galaxy_api_key: ${{ secrets.galaxy_api_key }}
+          path: domain-routing-openwrt
+          git_branch: role

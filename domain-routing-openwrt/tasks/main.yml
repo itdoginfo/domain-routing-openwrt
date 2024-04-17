@@ -1,0 +1,663 @@
+---
+
+# Dnsmasq version check
+
+  - name: Get dnsmasq version
+    shell: opkg list-installed | grep dnsmasq-full | awk '{print $3}'
+    register: dnsmasqfull_version
+
+  - name: debug
+    debug:
+      var: ansible_distribution_major_version
+
+# Packages installation
+
+  - name: install wg
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
+        - kmod-wireguard
+        - wireguard-tools
+    when: tunnel == "wg"
+
+  - name: install openvpn
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
+        - openvpn-openssl
+    when: tunnel == "openvpn"
+
+  - name: install singbox
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
+        - sing-box
+    when: tunnel == "singbox" and ansible_distribution_major_version >= "23"
+
+  - name: install curl
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
+        - curl
+
+  - name: install nano
+    opkg:
+      name: "{{ item }}"
+      state: present
+    loop:
+        - nano
+    when: nano
+
+  - name: install ipset
+    opkg:
+      name: ipset
+      state: present
+    when: ansible_distribution_major_version < "22"
+
+  - name: install dnsmasq-full (23)
+    shell: opkg update && cd /tmp/ && opkg download dnsmasq-full && opkg remove dnsmasq && opkg install dnsmasq-full --cache /tmp/ && [ -f /etc/config/dhcp-opkg ] && cp etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
+    when: ansible_distribution_major_version >= "23" and list_domains and not dnsmasqfull_version.stdout
+    ignore_errors: true
+
+# Getdomains script configure
+      
+  - name: getdomains script copy
+    template:
+      src: "openwrt-getdomains.j2"
+      dest: "/etc/init.d/getdomains"
+      mode: a+x
+      trim_blocks: false
+    notify:
+      - Run getdomains script
+
+  - name: create simplink in rc.d
+    file:
+      src: "/etc/init.d/getdomains"
+      dest: "/etc/rc.d/S99getdomains"
+      state: link
+    notify:
+      - Run getdomains script
+
+  - name: check string in crontab
+    shell: grep "getdomains" /etc/crontabs/root
+    register: check_cron
+    ignore_errors: true
+     
+  - name: add script to cron
+    lineinfile:
+      path: /etc/crontabs/root
+      create: yes
+      line: "0 4 * * * /etc/init.d/getdomains start"
+    when: check_cron.stdout == ""
+    
+  - name: enable and start crontab
+    service:
+      name: cron
+      state: started
+      enabled: yes
+      
+# Configure route table
+
+  - name: Route for vpn table
+    template:
+      src: "openwrt-30-vpnroute.j2"
+      dest: "/etc/hotplug.d/iface/30-vpnroute"
+      mode: 0644
+
+  - name: Check string in rt_tables
+    shell: grep "99 vpn" /etc/iproute2/rt_tables
+    register: check_rt_tables
+    ignore_errors: true
+      
+  - name: add route table
+    lineinfile:
+      path: /etc/iproute2/rt_tables
+      line: "99 vpn"
+    when: check_rt_tables.stdout == ""
+    notify:
+      - Restart network
+    
+# Configure WG
+
+  - name: add wg interface
+    uci:
+      command: add
+      config: network
+      type: interface
+      name: wg0
+    when: tunnel == "wg"
+
+  - name: configure wg interface
+    uci:
+      command: set
+      key: network.wg0
+      value:
+        proto: wireguard
+        private_key: "{{ wg_private_key }}"
+        listen_port: "{{ wg_listen_port }}"
+        addresses:
+          - "{{ wg_client_address }}"
+    when: tunnel == "wg"
+    notify:
+      - Restart network
+      
+  - name: set wg client without wg_preshared_key
+    uci:
+      command: section
+      config: network
+      type: wireguard_wg0
+      find_by:
+        name: wg0_client
+      value:
+        public_key: "{{ wg_public_key }}"
+        route_allowed_ips: 0
+        persistent_keepalive: 25
+        endpoint_host: "{{ wg_server_address }}"
+        allowed_ips: 0.0.0.0/0
+        endpoint_port: "{{ wg_client_port }}"
+    when: wg_preshared_key is undefined and tunnel == "wg"
+    notify:
+      - Restart network     
+  
+  - name: set wg client with wg_preshared_key
+    uci:
+      command: section
+      config: network
+      type: wireguard_wg0
+      find_by:
+        name: wg0_client
+      value:
+        public_key: "{{ wg_public_key }}"
+        preshared_key: "{{ wg_preshared_key }}"
+        route_allowed_ips: 0
+        persistent_keepalive: 25
+        endpoint_host: "{{ wg_server_address }}"
+        allowed_ips: 0.0.0.0/0
+        endpoint_port: "{{ wg_client_port }}"
+    when: wg_preshared_key is defined  and tunnel == "wg"
+
+  - name: set WG firewall zone 
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: wg
+      value:
+        forward: REJECT
+        output: ACCEPT
+        name: wg
+        input: REJECT
+        masq: 1
+        mtu_fix: 1
+        network: wg0
+        family: ipv4
+    when: tunnel == "wg"
+        
+  - name: add WG forwarding
+    uci:
+      command: section
+      config: firewall
+      type: forwarding
+      find_by:
+        name: wg-lan
+      value:
+        dest: wg
+        src: lan
+        family: ipv4
+    when: tunnel == "wg"
+
+# Configure Sing-box
+
+  - name: set sing-box firewall zone. Only >=22
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: tun
+      value:
+        forward: ACCEPT
+        output: ACCEPT
+        name: tun
+        input: ACCEPT
+        masq: 1
+        mtu_fix: 1
+        device: tun0
+        family: ipv4
+    when: tunnel == "singbox"
+    failed_when: ansible_distribution_major_version < "22"
+    notify:
+      - Restart firewall
+
+  - name: template for sing-box.json
+    template:
+      src: "sing-box-json.j2"
+      dest: "/etc/sing-box/config.json"
+      mode: 0644
+    when: tunnel == "singbox"
+    failed_when: ansible_distribution_major_version < "22"
+
+  - name: template for config/sing-box
+    template:
+      src: "config-sing-box.j2"
+      dest: "/etc/config/sing-box"
+      mode: 0600
+    when: tunnel == "singbox"
+    failed_when: ansible_distribution_major_version < "22"
+
+# Configure OpenVPN, tun2socks
+
+  - name: set {{ tunnel }} firewall zone 
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: tun
+      value:
+        forward: REJECT
+        output: ACCEPT
+        name: tun
+        input: REJECT
+        masq: 1
+        mtu_fix: 1
+        device: tun0
+        family: ipv4
+    when: tunnel == "openvpn" or tunnel == "tun2socks"
+    notify:
+      - Restart firewall
+        
+  - name: add {{ tunnel }} forwarding
+    uci:
+      command: section
+      config: firewall
+      type: forwarding
+      find_by:
+        name: lan-tun
+      value:
+        dest: tun
+        src: lan
+        family: ipv4
+    when: tunnel == "openvpn" or tunnel == "tun2socks" or tunnel == "singbox"
+    notify:
+      - Restart firewall
+
+# Configure network
+       
+  - name: set rule mark0x1
+    uci:
+      command: section
+      config: network
+      type: rule
+      find_by:
+        name: mark0x1
+      value:
+        mark: "0x1"
+        priority: 100
+        lookup: vpn
+
+  - name: set disable dns for wan
+    uci:
+      command: set
+      key: network.wan
+      value:
+        peerdns: 0
+    when: ansible_distribution_major_version < "22"
+
+  - name: uci commit firewall
+    uci:
+      command: commit
+      config: firewall
+    notify:
+      - Restart firewall
+
+  - name: uci commit network
+    uci:
+      command: commit
+      config: network
+    notify:
+      - Restart network
+
+# Configure firewall
+
+  - name: add ipset for subnet (<22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+       value:
+         match: dst_net
+         storage: hash
+         loadfile: /tmp/lst/subnet.lst
+    when: ansible_distribution_major_version < "22" and list_subnet
+         
+  - name: add ipset for ip (<22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ip
+       value:
+         match: dst_net
+         storage: hash
+         loadfile: /tmp/lst/ip.lst
+         hashsize: 9900000
+         maxelem: 9900000
+    when: ansible_distribution_major_version < "22" and list_ip
+
+  - name: add ipset for community (<22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+       value:
+         match: dst_net
+         storage: hash
+         loadfile: /tmp/lst/community.lst
+         hashsize: 9900000
+         maxelem: 9900000
+    when: ansible_distribution_major_version < "22" and list_community
+
+  - name: add nfset for subnet (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/subnet.lst
+    when: ansible_distribution_major_version >= "22" and list_subnet
+         
+  - name: add nfset for ip (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ip
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/ip.lst
+    when: ansible_distribution_major_version >= "22" and list_ip
+
+  - name: add nfset for community (22)
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+       value:
+         match: dst_net
+         loadfile: /tmp/lst/community.lst
+    when: ansible_distribution_major_version >= "22" and list_community
+
+  - name: add ipset for domains (<22). If failed, repeat playbook. If failed is repeated check dnsmasq-full. 
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+       value:
+         match: dst_net
+         storage: hash
+    when: ansible_distribution_major_version < "22" and list_domains
+
+  - name: add nfset for domains (>=22). If failed, repeat playbook. If failed is repeated check dnsmasq-full.
+    uci:
+       command: section
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+       value:
+         match: dst_net
+    when: ansible_distribution_major_version >= "22" and list_domains
+
+  - name: add mark rule vpn_subnet
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_subnet
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_subnets
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+    when: list_subnet
+
+  - name: add mark rule vpn_ip
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_ip
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_ip
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+    when: list_ip
+
+  - name: add mark rule vpn_community
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_community
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_community
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+    when: list_community
+
+  - name: add mark rule vpn_domains
+    uci:
+       command: section
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_domains
+       value:
+         src: lan
+         dest: "*"
+         proto: all
+         ipset: vpn_domains
+         set_mark: "0x1"
+         target: MARK
+         family: ipv4
+    when: (ansible_distribution_major_version < "22" and list_domains) or (ansible_distribution_major_version >= "22" and list_domains)
+
+  - name: wg access route
+    uci:
+      command: section
+      config: network
+      type: route
+      find_by:
+        name: wg_access_route
+      value:
+        interface: wg0
+        target: "{{ wg_access_network }}"
+    when: wg_access
+
+  - name: set WG firewall zone 
+    uci:
+      command: section
+      config: firewall
+      type: zone
+      find_by:
+        name: wg
+      value:
+        input: ACCEPT
+    when: wg_access
+
+# Remove unused rules and ipset
+  - name: Remove ipset for ip
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_ip
+    when: not list_ip
+
+  - name: Remove rule for ip
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_ip
+    when: not list_ip
+
+  - name: Remove ipset for subnet
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_subnets
+    when: not list_subnet
+
+  - name: Remove rule for subnet
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_subnet
+    when: not list_subnet
+
+  - name: Remove ipset for community
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_community
+    when: not list_community
+
+  - name: Remove rule for community
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_community
+    when: not list_community
+
+  - name: Remove ipset for domains
+    uci:
+       command: absent
+       config: firewall
+       type: ipset
+       find_by:
+         name: vpn_domains
+    when: not list_domains
+
+  - name: Remove rule for domains
+    uci:
+       command: absent
+       config: firewall
+       type: rule
+       find_by:
+         name: mark_domains
+    when: not list_domains
+
+# Configure DNS resolver
+
+  - name: install dnscrypt-proxy2
+    opkg:
+      name: dnscrypt-proxy2
+      state: present
+    when: dns_encrypt == "dnscrypt"
+
+  - name: check string in dnscrypt-proxy.toml
+    shell: grep "# server_names" /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
+    register: check_server_names
+    ignore_errors: true
+    when: dns_encrypt == "dnscrypt"
+
+  - name: dnscrypt2 enable exact servers
+    lineinfile:
+      path: /etc/dnscrypt-proxy2/dnscrypt-proxy.toml
+      regexp: "# server_names ="
+      line: "server_names = ['google', 'cloudflare', 'scaleway-fr', 'yandex']"
+    when: dns_encrypt == "dnscrypt" and check_server_names.stdout
+    notify:
+      - Restart dnscrypt-proxy
+    
+  - name: edit dhcp config. add localhost server
+    lineinfile:
+      path: /etc/config/dhcp
+      firstmatch: "true"
+      insertafter: "option leasefile '/tmp/dhcp.leases'"
+      line: "{{ item }}"
+    with_items:
+      - "        list server '127.0.0.53#53'"
+      - "        option noresolv '1'"
+    notify:
+      - Restart dnsmasq
+    when: dns_encrypt == "dnscrypt"
+
+  - name: install stubby
+    opkg:
+      name: stubby
+      state: present
+    when: dns_encrypt == "stubby"
+
+  - name: edit dhcp config. add localhost server
+    lineinfile:
+      path: /etc/config/dhcp
+      firstmatch: "true"
+      insertafter: "option leasefile '/tmp/dhcp.leases'"
+      line: "{{ item }}"
+    with_items:
+      - "        list server '127.0.0.1#5453'"
+      - "        option noresolv '1'"
+    notify:
+      - Restart dnsmasq
+    when: dns_encrypt == "stubby"
+
+# Commit
+
+  - name: uci commit firewall
+    uci:
+      command: commit
+      config: firewall
+    notify:
+      - Restart firewall
+
+  - name: uci commit network
+    uci:
+      command: commit
+      config: network
+    notify:
+      - Restart network
