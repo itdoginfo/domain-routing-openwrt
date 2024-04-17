@@ -3,19 +3,10 @@
   list_subnet: false
   list_ip: false
   list_community: false
-  tunnel: singbox
+  tunnel: wg
   dns_encrypt: false
   country: russia-inside
   nano: true
   wg_access: false
 
   wg_listen_port: 51820
-
-  # wg_server_address: wg-server-host
-  # wg_private_key: privatekey-client
-  # wg_public_key: publickey-client
-  # wg_preshared_key: presharedkey-client
-  # wg_listen_port: 51820
-  # wg_client_port: 51820
-  # wg_client_address: ip-client
-  # wg_access_network: wg-network
