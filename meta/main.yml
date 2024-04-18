@@ -6,7 +6,7 @@ galaxy_info:
   description: Configuring domain routing on Openwrt router
   issue_tracker_url: https://github.com/itdoginfo/domain-routing-openwrt/issues
   license: GPL-3.0
-  min_ansible_version: 2.10.8
+  min_ansible_version: 2.10.7
   platforms:
     - name: OpenWrt
   galaxy_tags:
