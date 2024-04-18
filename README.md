@@ -44,7 +44,7 @@ ansible-galaxy role install itdoginfo.domain_routing_openwrt
 
 Примеры playbooks
 
-Wireguard, only domains, stubby, Russia, acces from wg network (примерное значение 192.168.80.0/24), host 192.168.1.1
+Wireguard, only domains, stubby, Russia, acces from wg network (пример 192.168.80.0/24), host 192.168.1.1
 ```
 - hosts: 192.168.1.1
   remote_user: root
@@ -183,8 +183,7 @@ service getdomains start
 [Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
 
 ## Текстовый редактор nano
-Устанавливается по умолчанию
-Можно выключить
+Устанавливается по умолчанию. Можно выключить
 ```
   nano: false
 ```

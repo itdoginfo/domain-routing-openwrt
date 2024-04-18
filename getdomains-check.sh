@@ -134,7 +134,7 @@ if [ "$WG" == true ]; then
     if [ $ROUTE_TABLE -eq 1 ]; then
         checkpoint_true "Route table WG"
     else
-        checkpoint_false "Route table VPN"
+        checkpoint_false "Route table WG"
         echo "Details: https://cli.co/Atxr6U3"
     fi
 fi
