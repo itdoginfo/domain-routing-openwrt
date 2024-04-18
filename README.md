@@ -1,7 +1,7 @@
 [English role README](https://github.com/itdoginfo/domain-routing-openwrt/blob/master/README.EN.md)
 
 # Описание
-Shell скрипт и playbook для Ansible. Автоматизируют настройку роутера на OpenWrt для роутинга по доменам и спискам IP-адресов.
+Shell скрипт и [роль для Ansible](https://galaxy.ansible.com/ui/standalone/roles/itdoginfo/domain_routing_openwrt). Автоматизируют настройку роутера на OpenWrt для роутинга по доменам и спискам IP-адресов.
 
 Полное описание происходящего:
 - [Статья на хабре](https://habr.com/ru/articles/767464/)
