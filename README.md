@@ -1,160 +1,104 @@
-# Описание
-Shell скрипт и playbook для Ansible. Автоматизируют настройку роутера на OpenWrt для роутинга по доменам и спискам IP-адресов.
+Domain routing OpenWrt
+=========
 
-Полное описание происходящего: [Статья на хабре](https://habr.com/ru/articles/767464/)
+Configuring domain routing on Openwrt router.
 
-[Копия в моём блоге](https://itdog.info/tochechnyj-obhod-blokirovok-po-domenam-na-routere-s-openwrt/)
 
-## Скрипт для установки
-Запуск без скачивания
+Role Variables
+--------------
+
+Lists
 ```
-sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh)
-```
+  country: russia-inside|russia-outside|ukraine
+  list_domains: true|falase
 
-Подробности описаны в статье указаной выше.
-
-## Ansible
-Для взаимодействия c OpenWRT используется модуль [gekmihesg/ansible-openwrt](https://github.com/gekmihesg/ansible-openwrt)
-
-Домены берутся из [отсюда](https://github.com/itdoginfo/allow-domains). Списки IP-адресов берутся с [antifilter.download](https://antifilter.download/)
-
-Тестировалось с
-- Ansible 2.10.8
-
-- OpenWrt 21.02.7
-- OpenWrt 22.03.5
-- OpenWrt 23.05.2
-
-### Выбор туннеля
-- Wireguard настраивается автоматически через переменные
-- OpenVPN устанавливается пакет, настраивается роутинг и зона. Само подключение (скопировать конфиг и перезапустить openvpn) нужно [настроить вручную](https://itdog.info/nastrojka-klienta-openvpn-na-openwrt/)
-- Sing-box устанавливает пакет, настраивается роутинг и зона. Также кладётся темплейт в `/etc/sing-box/config.json`. Нужно настроить `config.json` и сделать `service sing-box restart`
-Не работает под 21ой версией. Поэтому при его выборе playbook выдаст ошибку.
-Для 22ой версии нужно установить пакет вручную.
-- tun2socks настраивается только роутинг и зона. Всё остальное нужно настроить вручную
-
-Для **tunnel** четыре возможных значения:
-- wg
-- openvpn
-- singbox
-- tun2socks
-
-В случае использования WG обязательно нужно задать:
-
-**wg_server_address** - ip/url wireguard сервера
-
-**wg_private_key**, **wg_public_key** - ключи для "клиента"
-
-**wg_client_address** - адрес роутера в wg сети
-
-Если ваш wg сервер использует preshared_key, то раскомментируйте **wg_preshared_key** и задайте ключ
-
-Остальное можно менять, в зависимости от того, как настроен wireguard сервер
-
-**wg_access** и **wg_access_network** для доступа к роутеру через WG. Переменная wg_access_network должна иметь значение подсети, например 192.168.10.0/24.
-
-### Шифрование DNS
-Если ваш провайдер не подменяет DNS-запросы, ничего устанавливать не нужно.
-
-Для **dns_encrypt** три возможных значения:
-- dnscrypt
-- stubby
-- false/закомментировано - пропуск, ничего не устанавливается и не настраивается
-
-### Выбор страны
- Для **county** три [возможных значения](https://github.com/itdoginfo/allow-domains):
-- russia-inside
-- russia-outside
-- ukraine
-
-### 
-
-### Списки IP-адресов и домены
-Переменные **list_** обозначают, какие списки нужно установить. true - установить, false - не устанавливать и удалить, если уже есть
-
-Я советую использовать только домены
-```
-    list_domains: true
-```
-Если вам требуются списки IP-адресов, они также поддерживаются.
-
-При использовании **list_domains** нужен пакет dnsmasq-full.
-
-Для 23.05 dnsmasq-full устанавливается автоматически.
-
-Для OpenWrt 22.03 версия dnsmasq-full должна быть => 2.87, её нет в официальном репозитории, но можно установить из dev репозитория. Если это условие не выполнено, плейбук завершится с ошибкой.
-
-[Инструкция для OpenWrt 22.03](https://t.me/itdoginf/12)
-
-[Инструкция для OpenWrt 21.02](https://t.me/itdoginfo/8)
-
-### Использование
-
-Установить модуль gekmihesg/ansible-openwrt
-
-```
-ansible-galaxy install gekmihesg.openwrt
+  list_subnet: false|true
+  list_ip: false|true
+  list_community: false|true
 ```
 
-Скачать playbook и темплейты в /etc/ansible
-
+Tunnel
 ```
-cd /etc/ansible
-git clone https://github.com/itdoginfo/domain-routing-openwrt
-mv domain-routing-openwrt/* .
-rm -rf domain-routing-openwrt README.md
+  tunnel: wg|openvpn|singbox|tun2socks
 ```
 
-Добавить роутер в файл hosts в группу openwrt
+DoH or DoT
 ```
-[openwrt]
-192.168.1.1
-```
-
-Подставить переменные в **hivpn.yml**
-
-Для работы Ansible c OpenWrt необходимо, чтоб было выполнено одно из условий:
-- Отсутствие пароля для root (не рекомендуется)
-- Настроен доступ через публичный SSH-ключ в [конфиге dropbear](https://openwrt.org/docs/guide-user/security/dropbear.public-key.auth)
-
-Запуск playbook
-```
-ansible-playbook playbooks/hivpn.yml --limit 192.168.1.1
+  dns_encrypt: false|dnscrypt|stubby
 ```
 
-После выполнения playbook роутер сразу начнёт роутить необходмые домены в туннель/прокси.
-
-Если у вас были ошибки и они исправились при повторном запуске playbook, но при этом роутинг не заработал, сделайте рестарт сети и скрипта:
+Nano package
 ```
-service network restart
-service getdomains start
+  nano: true|false
 ```
 
-# Скрипт для проверки конфигурации
-
-Написан для OpenWrt 23.05 и 22.03. На 21.02 работает только половина проверок.
-
-[x] - не обязательно означает, что эта часть не работает. Но это повод для ручной проверки.
-
-Есть функционал сохранения вывода скрипта, конфигурации сети и firewall в файл. Все чувствительные переменные при этом затираются.
-
-### Запуск
+Acces from wg network to router
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh
+  wg_access: false|true
 ```
 
-### Запустить с проверкой на подмену DNS
+If wireguard is used:
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dns
+    wg_server_address: wg-server-host
+    wg_private_key: privatekey-client
+    wg_public_key: publickey-client
+    #wg_preshared_key: presharedkey-client
+    wg_client_port: 51820
+    wg_client_address: ip-client
+    wg_access_network: wg-network
 ```
 
-### Запустить с созданием dump
+Dependencies
+------------
+
+[gekmihesg.openwrt](https://github.com/gekmihesg/ansible-openwrt)
+
+
+Example Playbook
+----------------
+
+The inventory file must contain the group `[openwrt]` where your router will be located.
+
+
+Wireguard, only domains, stubby, Russia, acces from wg network, host 192.168.1.1
 ```
-wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-check.sh | sh -s dump
+- hosts: 192.168.1.1
+  remote_user: root
+
+  roles:
+    - domain-routing-openwrt
+
+  vars:
+    tunnel: wg
+    dns_encrypt: stubby
+    country: russia-inside
+    wg_access: true
+
+    wg_server_address: wg-server-host
+    wg_private_key: privatekey-client
+    wg_public_key: publickey-client
+    wg_preshared_key: presharedkey-client
+    wg_listen_port: 51820
+    wg_client_port: 51820
+    wg_client_address: ip-client
+    wg_access_network: wg-network
 ```
 
-Поиск ошибок вручную: https://habr.com/ru/post/702388/
+Sing-box, stubby, Russia
+```
+- hosts: 192.168.1.1
+  remote_user: root
 
----
+  roles:
+    - domain-routing-openwrt
 
-[Telegram-канал с обновлениями](https://t.me/+lW1HmBO_Fa00M2Iy)
+  vars:
+    tunnel: singbox
+    dns_encrypt: stubby
+    country: russia-inside
+```
+
+License
+-------
+
+GNU General Public License v3.0

@@ -1,0 +1,12 @@
+---
+  list_domains: true
+  list_subnet: false
+  list_ip: false
+  list_community: false
+  tunnel: wg
+  dns_encrypt: false
+  country: russia-inside
+  nano: true
+  wg_access: false
+
+  wg_listen_port: 51820
