@@ -2,7 +2,6 @@ name: Public to Ansible Galaxy
 
 on:
   push:
-    branches: [ "master" ]
     tags:
       - '*'
 
