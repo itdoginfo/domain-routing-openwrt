@@ -2,7 +2,7 @@ name: Public to Ansible Galaxy
 
 on:
   push:
-    branches: [ "role" ]
+    branches: [ "master" ]
     tags:
       - '*'
 
@@ -16,4 +16,3 @@ jobs:
         uses: robertdebock/galaxy-action@1.2.1
         with:
           galaxy_api_key: ${{ secrets.galaxy_api_key }}
-          git_branch: 0.1.3
