@@ -1,0 +1,18 @@
+name: Public to Ansible Galaxy
+
+on:
+  push:
+    branches: [ "master" ]
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: Publish Ansible role to Galaxy
+        uses: robertdebock/galaxy-action@1.2.1
+        with:
+          galaxy_api_key: ${{ secrets.galaxy_api_key }}
