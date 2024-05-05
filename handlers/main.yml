@@ -24,3 +24,8 @@
     service:
       name: dnsmasq
       state: restarted
+
+  - name: Restart sing-box
+    service:
+      name: sing-box
+      state: restarted
