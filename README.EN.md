@@ -69,7 +69,7 @@ Wireguard, only domains, stubby, Russia, acces from wg network, host 192.168.1.1
   remote_user: root
 
   roles:
-    - domain-routing-openwrt
+    - itdoginfo.domain_routing_openwrt
 
   vars:
     tunnel: wg
@@ -93,12 +93,22 @@ Sing-box, stubby, Russia
   remote_user: root
 
   roles:
-    - domain-routing-openwrt
+    - itdoginfo.domain_routing_openwrt
 
   vars:
     tunnel: singbox
     dns_encrypt: stubby
     country: russia-inside
+
+  tasks:
+  - name: sing-box config
+    template:
+      src: "templates/openwrt-sing-box-json.j2"
+      dest: "/etc/sing-box/config.json"
+      mode: 0644
+    notify:
+      - Restart sing-box
+      - Restart network
 ```
 
 License

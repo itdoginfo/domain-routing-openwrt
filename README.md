@@ -81,6 +81,16 @@ Sing-box, stubby, Russia
     tunnel: singbox
     dns_encrypt: stubby
     country: russia-inside
+
+  tasks:
+  - name: sing-box config
+    template:
+      src: "templates/openwrt-sing-box-json.j2"
+      dest: "/etc/sing-box/config.json"
+      mode: 0644
+    notify:
+      - Restart sing-box
+      - Restart network
 ```
 
 В inventory файле роутер обязательно должен быть в группе `[openwrt]`
