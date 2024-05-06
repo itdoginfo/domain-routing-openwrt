@@ -1,4 +1,9 @@
 ---
+  - name: Restart sing-box
+    service:
+      name: sing-box
+      state: restarted
+
   - name: Restart network
     service:
       name: network
@@ -23,9 +28,4 @@
   - name: Restart dnsmasq
     service:
       name: dnsmasq
-      state: restarted
-
-  - name: Restart sing-box
-    service:
-      name: sing-box
       state: restarted
