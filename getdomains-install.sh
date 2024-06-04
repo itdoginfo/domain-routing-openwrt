@@ -530,6 +530,7 @@ cat << 'EOF' >> /etc/init.d/getdomains
         else
             echo "GitHub is not available. Check the internet availability [$count]"
             count=$((count+1))
+            sleep 5
         fi
     done
 
