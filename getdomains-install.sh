@@ -45,7 +45,8 @@ add_tunnel() {
     echo "2) OpenVPN"
     echo "3) Sing-box"
     echo "4) tun2socks"
-    echo "5) Skip this step"
+    echo "5) wgForYoutube"
+    echo "6) Skip this step"
 
     while true; do
     read -r -p '' TUNNEL
@@ -71,7 +72,12 @@ add_tunnel() {
             break
             ;;
 
-        5)
+        5) 
+            TUNNEL=wgForYoutube
+            break
+            ;;
+
+        6)
             echo "Skip"
             TUNNEL=0
             break
@@ -207,6 +213,11 @@ EOF
         printf "\033[32;1mConfigure route for Sing-box\033[0m\n"
         route_vpn
     fi
+
+    if [ "$TUNNEL" == 'wgForYoutube' ]; then
+        add_internal_wg
+    fi
+
 }
 
 dnsmasqfull() {
@@ -550,6 +561,147 @@ EOF
 
         /etc/init.d/getdomains start
     fi
+}
+
+add_internal_wg() {
+    printf "\033[32;1mConfigure WireGuard\033[0m\n"
+    if opkg list-installed | grep -q wireguard-tools; then
+        echo "Wireguard already installed"
+    else
+        echo "Installed wg..."
+        opkg install wireguard-tools
+    fi
+
+    read -r -p "Enter the private key (from [Interface]):"$'\n' WG_PRIVATE_KEY_INT
+
+    while true; do
+        read -r -p "Enter internal IP address with subnet, example 192.168.100.5/24 (from [Interface]):"$'\n' WG_IP
+        if echo "$WG_IP" | egrep -oq '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$'; then
+            break
+        else
+            echo "This IP is not valid. Please repeat"
+        fi
+    done
+
+    read -r -p "Enter the public key (from [Peer]):"$'\n' WG_PUBLIC_KEY_INT
+    read -r -p "If use PresharedKey, Enter this (from [Peer]). If your don't use leave blank:"$'\n' WG_PRESHARED_KEY_INT
+    read -r -p "Enter Endpoint host without port (Domain or IP) (from [Peer]):"$'\n' WG_ENDPOINT_INT
+
+    read -r -p "Enter Endpoint host port (from [Peer]) [51820]:"$'\n' WG_ENDPOINT_PORT_INT
+    WG_ENDPOINT_PORT_INT=${WG_ENDPOINT_PORT_INT:-51820}
+    if [ "$WG_ENDPOINT_PORT_INT" = '51820' ]; then
+        echo $WG_ENDPOINT_PORT_INT
+    fi
+    
+    uci set network.wg1=interface
+    uci set network.wg1.proto='wireguard'
+    uci set network.wg1.private_key=$WG_PRIVATE_KEY_INT
+    uci set network.wg1.listen_port='51820'
+    uci set network.wg1.addresses=$WG_IP
+
+    if ! uci show network | grep -q wireguard_wg1; then
+        uci add network wireguard_wg1
+    fi
+    uci set network.@wireguard_wg1[0]=wireguard_wg1
+    uci set network.@wireguard_wg1[0].name='wg1_client'
+    uci set network.@wireguard_wg1[0].public_key=$WG_PUBLIC_KEY_INT
+    uci set network.@wireguard_wg1[0].preshared_key=$WG_PRESHARED_KEY_INT
+    uci set network.@wireguard_wg1[0].route_allowed_ips='0'
+    uci set network.@wireguard_wg1[0].persistent_keepalive='25'
+    uci set network.@wireguard_wg1[0].endpoint_host=$WG_ENDPOINT_INT
+    uci set network.@wireguard_wg1[0].allowed_ips='0.0.0.0/0'
+    uci set network.@wireguard_wg1[0].endpoint_port=$WG_ENDPOINT_PORT_INT
+    uci commit network
+
+    grep -q "110 vpninternal" /etc/iproute2/rt_tables || echo '110 vpninternal' >> /etc/iproute2/rt_tables
+
+    if ! uci show network | grep -q mark0x2; then
+        printf "\033[32;1mConfigure mark rule\033[0m\n"
+        uci add network rule
+        uci set network.@rule[-1].name='mark0x2'
+        uci set network.@rule[-1].mark='0x2'
+        uci set network.@rule[-1].priority='110'
+        uci set network.@rule[-1].lookup='vpninternal'
+        uci commit
+    fi
+
+    if ! uci show network | grep -q vpn_route_internal; then
+        printf "\033[32;1mAdd route\033[0m\n"
+        uci set network.vpn_route_internal=route
+        uci set network.vpn_route_internal.name='vpninternal'
+        uci set network.vpn_route_internal.interface='wg1'
+        uci set network.vpn_route_internal.table='vpninternal'
+        uci set network.vpn_route_internal.target='0.0.0.0/0'
+        uci commit network
+    fi
+
+    if ! uci show firewall | grep -q "@zone.*name='wg_internal'"; then
+        printf "\033[32;1mZone Create\033[0m\n"
+        uci add firewall zone
+        uci set firewall.@zone[-1].name="wg_internal"
+        uci set firewall.@zone[-1].network='wg1'
+        uci set firewall.@zone[-1].forward='REJECT'
+        uci set firewall.@zone[-1].output='ACCEPT'
+        uci set firewall.@zone[-1].input='REJECT'
+        uci set firewall.@zone[-1].masq='1'
+        uci set firewall.@zone[-1].mtu_fix='1'
+        uci set firewall.@zone[-1].family='ipv4'
+        uci commit firewall
+    fi
+
+    if ! uci show firewall | grep -q "@forwarding.*name='wg_internal'"; then
+        printf "\033[32;1mConfigured forwarding\033[0m\n"
+        uci add firewall forwarding
+        uci set firewall.@forwarding[-1]=forwarding
+        uci set firewall.@forwarding[-1].name="wg_internal-lan"
+        uci set firewall.@forwarding[-1].dest="wg_internal"
+        uci set firewall.@forwarding[-1].src='lan'
+        uci set firewall.@forwarding[-1].family='ipv4'
+        uci commit firewall
+    fi
+
+    if uci show firewall | grep -q "@ipset.*name='vpn_domains_internal'"; then
+        printf "\033[32;1mSet already exist\033[0m\n"
+    else
+        printf "\033[32;1mCreate set\033[0m\n"
+        uci add firewall ipset
+        uci set firewall.@ipset[-1].name='vpn_domains_internal'
+        uci set firewall.@ipset[-1].match='dst_net'
+        uci commit firewall
+    fi
+
+    if uci show firewall | grep -q "@rule.*name='mark_domains_intenal'"; then
+        printf "\033[32;1mRule for set already exist\033[0m\n"
+    else
+        printf "\033[32;1mCreate rule set\033[0m\n"
+        uci add firewall rule
+        uci set firewall.@rule[-1]=rule
+        uci set firewall.@rule[-1].name='mark_domains_intenal'
+        uci set firewall.@rule[-1].src='lan'
+        uci set firewall.@rule[-1].dest='*'
+        uci set firewall.@rule[-1].proto='all'
+        uci set firewall.@rule[-1].ipset='vpn_domains_internal'
+        uci set firewall.@rule[-1].set_mark='0x2'
+        uci set firewall.@rule[-1].target='MARK'
+        uci set firewall.@rule[-1].family='ipv4'
+        uci commit firewall
+    fi
+
+    if uci show dhcp | grep -q "@ipset.*name='vpn_domains_internal'"; then
+        printf "\033[32;1mDomain on vpn_domains_internal already exist\033[0m\n"
+    else
+        printf "\033[32;1mCreate domain for vpn_domains_internal\033[0m\n"
+        uci add dhcp ipset
+        uci add_list dhcp.@ipset[-1].name='vpn_domains_internal'
+        uci add_list dhcp.@ipset[-1].domain='googlevideo.com'
+        uci add_list dhcp.@ipset[-1].domain='yt3.ggpht.com'
+        uci commit dhcp
+    fi
+
+    service dnsmasq restart
+    service network restart
+
+    exit 0
 }
 
 # System Details
