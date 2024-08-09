@@ -2,7 +2,8 @@
 Так как пакетов AmneziaWG до сих пор нет в официальном репозитории OpenWRT, их придется собирать самостоятельно. Процесс несложный и автоматизированный.
 
 ### Создаем форк
-Создаем форк [репозитория](https://github.com/yury-sannikov/awg-openwrt) с исходными файлами AmneziaWG
+Создаем форк [репозитория](https://github.com/yury-sannikov/awg-openwrt) с исходными файлами AmneziaWG. Затем в созданном форке переходим во вкладку Actions и нажать большую зеленую кнопку, чтобы разрешить для этого репозитория выполнение Github Actions:
+![enable gh workflow](./amnezia-wg-images/enable-gh-workflow.jpeg)
 
 ### Указываем переменные для сборки
 Далее в созданном форке нужно отредактировать в файле `.github/workflows/build-module.yml` переменные для сборки (`build_env`):
