@@ -94,11 +94,6 @@ if curl -6 -s https://ifconfig.io | egrep -q "(::)?[0-9a-fA-F]{1,4}(::?[0-9a-fA-
     checkpoint_false "IPv6 detected. This script does not currently work with IPv6"
 fi
 
-# PPPoE
-if uci show network.wan.proto | grep -q "pppoe"; then
-    checkpoint_false "PPPoE is used. That could be a problem"
-fi
-
 # Tunnels
 WIREGUARD=$(opkg list-installed | grep -c wireguard-tools )
 if [ $WIREGUARD -eq 1 ]; then
