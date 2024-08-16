@@ -125,7 +125,7 @@ service getdomains start
 Для 22ой версии нужно установить пакет вручную.
 - tun2socks настраивается только роутинг и зона. Всё остальное нужно настроить вручную
 - wgForYoutube - настройка Wireguard только для Youtube. Настраивается автоматически через переменные
-- Amnezia wireguard - настраивается автоматически через переменные, но перед настройкой необходимо самостоятельно [собрать бинарники AmneziaWG](https://github.com/itdoginfo/domain-routing-openwrt/wiki/Amnezia-WG-Build) для своего устройства и установить их
+- Amnezia wireguard - настраивается автоматически через переменныепеременные. Скрипт проверяет наличие пакетов под вашу платформу в [стороннем репозитории](https://github.com/Slava-Shchipunov/awg-openwrt/releases), так как в официальном репозитории OpenWRT они отсутствуют. Если подходящих пакетов нет, перед настройкой необходимо будет самостоятельно [собрать бинарники AmneziaWG](https://github.com/itdoginfo/domain-routing-openwrt/wiki/Amnezia-WG-Build) для своего устройства и установить их
 
 Для **tunnel** шесть возможных значений:
 - wg
