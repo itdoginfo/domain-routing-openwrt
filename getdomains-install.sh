@@ -232,33 +232,99 @@ EOF
 
     if [ "$TUNNEL" == 'awg' ]; then
         printf "\033[32;1mConfigure Amnezia WireGuard\033[0m\n"
+
+        # Получение pkgarch с наибольшим приоритетом
+        PKGARCH=$(opkg print-architecture | awk 'BEGIN {max=0} {if ($3 > max) {max = $3; arch = $2}} END {print arch}')
+
+        TARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 1)
+        SUBTARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 2)
+        VERSION=$(ubus call system board | jsonfilter -e '@.release.version')
+        PKGPOSTFIX="_v${VERSION}_${PKGARCH}_${TARGET}_${SUBTARGET}.ipk"
+        BASE_URL="https://github.com/Slava-Shchipunov/awg-openwrt/releases/download/"
+
+        AWG_DIR="/tmp/amneziawg"
+        mkdir -p "$AWG_DIR"
+
         if opkg list-installed | grep -q amneziawg-tools; then
             echo "amneziawg-tools already installed"
         else
-            echo "Please, install amneziawg-tools and run the script again"
-            exit 1
+            AMNEZIAWG_TOOLS_FILENAME="amneziawg-tools${PKGPOSTFIX}"
+            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${AMNEZIAWG_TOOLS_FILENAME}"
+            curl -L -o "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME" "$DOWNLOAD_URL"
+
+            if [ $? -eq 0 ]; then
+                echo "amneziawg-tools file downloaded successfully"
+            else
+                echo "Error downloading amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
+                exit 1
+            fi
+
+            opkg install "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME"
+
+            if [ $? -eq 0 ]; then
+                echo "amneziawg-tools file downloaded successfully"
+            else
+                echo "Error installing amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
+                exit 1
+            fi
         fi
         
         if opkg list-installed | grep -q kmod-amneziawg; then
             echo "kmod-amneziawg already installed"
         else
-            echo "Please, install kmod-amneziawg and run the script again"
-            exit 1
+            KMOD_AMNEZIAWG_FILENAME="kmod-amneziawg${PKGPOSTFIX}"
+            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${KMOD_AMNEZIAWG_FILENAME}"
+            curl -L -o "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
+
+            if [ $? -eq 0 ]; then
+                echo "kmod-amneziawg file downloaded successfully"
+            else
+                echo "Error downloading kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
+                exit 1
+            fi
+            
+            opkg install "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME"
+
+            if [ $? -eq 0 ]; then
+                echo "kmod-amneziawg file downloaded successfully"
+            else
+                echo "Error installing kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
+                exit 1
+            fi
         fi
         
         if opkg list-installed | grep -q luci-app-amneziawg; then
             echo "luci-app-amneziawg already installed"
         else
-            echo "Please, install kmod-amneziawg and run the script again"
-            exit 1
+            LUCI_APP_AMNEZIAWG_FILENAME="luci-app-amneziawg${PKGPOSTFIX}"
+            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${LUCI_APP_AMNEZIAWG_FILENAME}"
+            curl -L -o "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
+
+            if [ $? -eq 0 ]; then
+                echo "luci-app-amneziawg file downloaded successfully"
+            else
+                echo "Error downloading luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
+                exit 1
+            fi
+
+            opkg install "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME"
+
+            if [ $? -eq 0 ]; then
+                echo "luci-app-amneziawg file downloaded successfully"
+            else
+                echo "Error installing luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
+                exit 1
+            fi
         fi
+
+        rm -rf "$AWG_DIR"
 
         route_vpn
 
         read -r -p "Enter the private key (from [Interface]):"$'\n' AWG_PRIVATE_KEY
 
         while true; do
-            read -r -p "Enter internal IP address with subnet, example 192.168.100.5/24 (from [Interface]):"$'\n' AWG_IP
+            read -r -p "Enter internal IP address with subnet, example 192.168.100.5/24 (Address from [Interface]):"$'\n' AWG_IP
             if echo "$AWG_IP" | egrep -oq '^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]+$'; then
                 break
             else
@@ -266,7 +332,7 @@ EOF
             fi
         done
         
-        read -r -p "Enter DNS servers separated by comma (from [Interface]):"$'\n' AWG_DNS
+        read -r -p "Enter DNS servers separated by comma (DNS from [Interface]):"$'\n' AWG_DNS
 
         read -r -p "Enter Jc value (from [Interface]):"$'\n' AWG_JC
         read -r -p "Enter Jmin value (from [Interface]):"$'\n' AWG_JMIN
