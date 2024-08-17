@@ -331,8 +331,6 @@ EOF
                 echo "This IP is not valid. Please repeat"
             fi
         done
-        
-        read -r -p "Enter DNS servers separated by comma (DNS from [Interface]):"$'\n' AWG_DNS
 
         read -r -p "Enter Jc value (from [Interface]):"$'\n' AWG_JC
         read -r -p "Enter Jmin value (from [Interface]):"$'\n' AWG_JMIN
@@ -359,10 +357,6 @@ EOF
         uci set network.awg0.private_key=$AWG_PRIVATE_KEY
         uci set network.awg0.listen_port='51820'
         uci set network.awg0.addresses=$AWG_IP
-
-        for DNS in $(echo $AWG_DNS | tr ',' ' '); do
-            uci add_list network.awg0.dns=$DNS
-        done
 
         uci set network.awg0.awg_jc=$AWG_JC
         uci set network.awg0.awg_jmin=$AWG_JMIN
