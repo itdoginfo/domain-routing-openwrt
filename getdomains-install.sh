@@ -875,10 +875,16 @@ add_internal_wg() {
         printf "\033[32;1mCreate domain for vpn_domains_internal\033[0m\n"
         uci add dhcp ipset
         uci add_list dhcp.@ipset[-1].name='vpn_domains_internal'
+        uci add_list dhcp.@ipset[-1].domain='youtube.com'
         uci add_list dhcp.@ipset[-1].domain='googlevideo.com'
-        uci add_list dhcp.@ipset[-1].domain='yt3.ggpht.com'
+        uci add_list dhcp.@ipset[-1].domain='youtubekids.com'
+        uci add_list dhcp.@ipset[-1].domain='googleapis.com'
+        uci add_list dhcp.@ipset[-1].domain='ytimg.com'
+        uci add_list dhcp.@ipset[-1].domain='ggpht.com'
         uci commit dhcp
     fi
+
+    sed -i "/done/a sed -i '/youtube.com\\\|ytimg.com\\\|ggpht.com\\\|googlevideo.com\\\|googleapis.com\\\|youtubekids.com/d' /tmp/dnsmasq.d/domains.lst" "/etc/init.d/getdomains"
 
     service dnsmasq restart
     service network restart
