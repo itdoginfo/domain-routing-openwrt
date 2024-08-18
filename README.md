@@ -12,6 +12,11 @@ Shell скрипт и [роль для Ansible](https://galaxy.ansible.com/ui/st
 sh <(wget -O - https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/getdomains-install.sh)
 ```
 
+## AmneziaWG
+Через этот скрипт можно установить Amnezia wireguard. Скрипт проверяет наличие пакетов под вашу платформу в [стороннем репозитории](https://github.com/Slava-Shchipunov/awg-openwrt/releases), так как в официальном репозитории OpenWRT они отсутствуют, и автоматически их устанавливает.
+
+Если подходящих пакетов нет, перед настройкой необходимо будет самостоятельно [собрать бинарники AmneziaWG](https://github.com/itdoginfo/domain-routing-openwrt/wiki/Amnezia-WG-Build) для своего устройства и установить их.
+
 ## Скрипт для проверки конфигурации
 Написан для OpenWrt 23.05 и 22.03. На 21.02 работает только половина проверок.
 
@@ -124,16 +129,12 @@ service getdomains start
 Не работает под 21ой версией. Поэтому при его выборе playbook выдаст ошибку.
 Для 22ой версии нужно установить пакет вручную.
 - tun2socks настраивается только роутинг и зона. Всё остальное нужно настроить вручную
-- wgForYoutube - настройка Wireguard только для Youtube. Настраивается автоматически через переменные
-- Amnezia wireguard - настраивается автоматически через переменныепеременные. Скрипт проверяет наличие пакетов под вашу платформу в [стороннем репозитории](https://github.com/Slava-Shchipunov/awg-openwrt/releases), так как в официальном репозитории OpenWRT они отсутствуют. Если подходящих пакетов нет, перед настройкой необходимо будет самостоятельно [собрать бинарники AmneziaWG](https://github.com/itdoginfo/domain-routing-openwrt/wiki/Amnezia-WG-Build) для своего устройства и установить их
 
 Для **tunnel** шесть возможных значений:
 - wg
 - openvpn
 - singbox
 - tun2socks
-- wgForYoutube
-- awg
 
 В случае использования WG:
 ```
