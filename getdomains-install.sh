@@ -893,7 +893,7 @@ add_internal_wg() {
 }
 
 # System Details
-MODEL=$(grep machine /proc/cpuinfo | cut -d ':' -f 2)
+MODEL=$(cat /tmp/sysinfo/model)
 RELEASE=$(grep OPENWRT_RELEASE /etc/os-release | awk -F '"' '{print $2}')
 printf "\033[34;1mModel:$MODEL\033[0m\n"
 printf "\033[34;1mVersion: $RELEASE\033[0m\n"
