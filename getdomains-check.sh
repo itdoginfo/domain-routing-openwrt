@@ -25,7 +25,7 @@ printf "\033[34;1mModel: $MODEL\033[0m\n"
 printf "\033[34;1mVersion: $OPENWRT_RELEASE\033[0m\n"
 printf "\033[34;1mDate: $(date)\033[0m\n"
 
-VERSION_ID=$(cat $VERSION | awk -F. '{print $1}')
+VERSION_ID=$(echo $VERSION | awk -F. '{print $1}')
 RAM=$(free -m | grep Mem: | awk '{print $2}')
 if [[ "$VERSION_ID" -ge 22 && "$RAM" -lt 150000 ]]
 then 
