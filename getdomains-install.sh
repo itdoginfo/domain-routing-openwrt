@@ -949,12 +949,12 @@ install_awg_packages() {
 }
 
 # System Details
-MODEL=$(grep machine /proc/cpuinfo | cut -d ':' -f 2)
-RELEASE=$(grep OPENWRT_RELEASE /etc/os-release | awk -F '"' '{print $2}')
-printf "\033[34;1mModel:$MODEL\033[0m\n"
-printf "\033[34;1mVersion: $RELEASE\033[0m\n"
+MODEL=$(cat /tmp/sysinfo/model)
+source /etc/os-release
+printf "\033[34;1mModel: $MODEL\033[0m\n"
+printf "\033[34;1mVersion: $OPENWRT_RELEASE\033[0m\n"
 
-VERSION_ID=$(grep VERSION_ID /etc/os-release | awk -F '"' '{print $2}' | awk -F. '{print $1}')
+VERSION_ID=$(echo $VERSION | awk -F. '{print $1}')
 
 if [ "$VERSION_ID" -ne 23 ]; then
     printf "\033[31;1mScript only support OpenWrt 23.05\033[0m\n"

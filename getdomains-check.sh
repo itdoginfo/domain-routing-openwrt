@@ -19,13 +19,13 @@ output_21() {
 }
 
 # System Details
-MODEL=$(grep machine /proc/cpuinfo | cut -d ':' -f 2)
-RELEASE=$(grep OPENWRT_RELEASE /etc/os-release | awk -F '"' '{print $2}')
-printf "\033[34;1mModel:$MODEL\033[0m\n"
-printf "\033[34;1mVersion: $RELEASE\033[0m\n"
+MODEL=$(cat /tmp/sysinfo/model)
+source /etc/os-release
+printf "\033[34;1mModel: $MODEL\033[0m\n"
+printf "\033[34;1mVersion: $OPENWRT_RELEASE\033[0m\n"
 printf "\033[34;1mDate: $(date)\033[0m\n"
 
-VERSION_ID=$(grep VERSION_ID /etc/os-release | awk -F '"' '{print $2}' | awk -F. '{print $1}')
+VERSION_ID=$(echo $VERSION | awk -F. '{print $1}')
 RAM=$(free -m | grep Mem: | awk '{print $2}')
 if [[ "$VERSION_ID" -ge 22 && "$RAM" -lt 150000 ]]
 then 
