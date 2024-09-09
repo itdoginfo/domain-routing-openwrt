@@ -53,7 +53,8 @@ add_tunnel() {
     echo "4) tun2socks"
     echo "5) wgForYoutube"
     echo "6) Amnezia WireGuard"
-    echo "7) Skip this step"
+    echo "7) Amnezia WireGuard For Youtube"
+    echo "8) Skip this step"
 
     while true; do
     read -r -p '' TUNNEL
@@ -89,7 +90,12 @@ add_tunnel() {
             break
             ;;
 
-        7)
+        7) 
+            TUNNEL=awgForYoutube
+            break
+            ;;
+
+        8)
             echo "Skip"
             TUNNEL=0
             break
@@ -227,97 +233,17 @@ EOF
     fi
 
     if [ "$TUNNEL" == 'wgForYoutube' ]; then
-        add_internal_wg
+        add_internal_wg Wireguard
+    fi
+
+    if [ "$TUNNEL" == 'awgForYoutube' ]; then
+        add_internal_wg AmneziaWG
     fi
 
     if [ "$TUNNEL" == 'awg' ]; then
         printf "\033[32;1mConfigure Amnezia WireGuard\033[0m\n"
 
-        # Получение pkgarch с наибольшим приоритетом
-        PKGARCH=$(opkg print-architecture | awk 'BEGIN {max=0} {if ($3 > max) {max = $3; arch = $2}} END {print arch}')
-
-        TARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 1)
-        SUBTARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 2)
-        VERSION=$(ubus call system board | jsonfilter -e '@.release.version')
-        PKGPOSTFIX="_v${VERSION}_${PKGARCH}_${TARGET}_${SUBTARGET}.ipk"
-        BASE_URL="https://github.com/Slava-Shchipunov/awg-openwrt/releases/download/"
-
-        AWG_DIR="/tmp/amneziawg"
-        mkdir -p "$AWG_DIR"
-
-        if opkg list-installed | grep -q amneziawg-tools; then
-            echo "amneziawg-tools already installed"
-        else
-            AMNEZIAWG_TOOLS_FILENAME="amneziawg-tools${PKGPOSTFIX}"
-            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${AMNEZIAWG_TOOLS_FILENAME}"
-            curl -L -o "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME" "$DOWNLOAD_URL"
-
-            if [ $? -eq 0 ]; then
-                echo "amneziawg-tools file downloaded successfully"
-            else
-                echo "Error downloading amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
-                exit 1
-            fi
-
-            opkg install "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME"
-
-            if [ $? -eq 0 ]; then
-                echo "amneziawg-tools file downloaded successfully"
-            else
-                echo "Error installing amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
-                exit 1
-            fi
-        fi
-        
-        if opkg list-installed | grep -q kmod-amneziawg; then
-            echo "kmod-amneziawg already installed"
-        else
-            KMOD_AMNEZIAWG_FILENAME="kmod-amneziawg${PKGPOSTFIX}"
-            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${KMOD_AMNEZIAWG_FILENAME}"
-            curl -L -o "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
-
-            if [ $? -eq 0 ]; then
-                echo "kmod-amneziawg file downloaded successfully"
-            else
-                echo "Error downloading kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
-                exit 1
-            fi
-            
-            opkg install "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME"
-
-            if [ $? -eq 0 ]; then
-                echo "kmod-amneziawg file downloaded successfully"
-            else
-                echo "Error installing kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
-                exit 1
-            fi
-        fi
-        
-        if opkg list-installed | grep -q luci-app-amneziawg; then
-            echo "luci-app-amneziawg already installed"
-        else
-            LUCI_APP_AMNEZIAWG_FILENAME="luci-app-amneziawg${PKGPOSTFIX}"
-            DOWNLOAD_URL="${BASE_URL}v${VERSION}/${LUCI_APP_AMNEZIAWG_FILENAME}"
-            curl -L -o "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
-
-            if [ $? -eq 0 ]; then
-                echo "luci-app-amneziawg file downloaded successfully"
-            else
-                echo "Error downloading luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
-                exit 1
-            fi
-
-            opkg install "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME"
-
-            if [ $? -eq 0 ]; then
-                echo "luci-app-amneziawg file downloaded successfully"
-            else
-                echo "Error installing luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
-                exit 1
-            fi
-        fi
-
-        rm -rf "$AWG_DIR"
+        install_awg_packages
 
         route_vpn
 
@@ -746,12 +672,29 @@ EOF
 }
 
 add_internal_wg() {
-    printf "\033[32;1mConfigure WireGuard\033[0m\n"
-    if opkg list-installed | grep -q wireguard-tools; then
-        echo "Wireguard already installed"
-    else
-        echo "Installed wg..."
-        opkg install wireguard-tools
+    PROTOCOL_NAME=$1
+    printf "\033[32;1mConfigure ${PROTOCOL_NAME}\033[0m\n"
+    if [ "$PROTOCOL_NAME" = 'Wireguard' ]; then
+        INTERFACE_NAME="wg1"
+        CONFIG_NAME="wireguard_wg1"
+        PROTO="wireguard"
+        ZONE_NAME="wg_internal"
+
+        if opkg list-installed | grep -q wireguard-tools; then
+            echo "Wireguard already installed"
+        else
+            echo "Installed wg..."
+            opkg install wireguard-tools
+        fi
+    fi
+
+    if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
+        INTERFACE_NAME="awg1"
+        CONFIG_NAME="amneziawg_awg1"
+        PROTO="amneziawg"
+        ZONE_NAME="awg_internal"
+
+        install_awg_packages
     fi
 
     read -r -p "Enter the private key (from [Interface]):"$'\n' WG_PRIVATE_KEY_INT
@@ -774,25 +717,50 @@ add_internal_wg() {
     if [ "$WG_ENDPOINT_PORT_INT" = '51820' ]; then
         echo $WG_ENDPOINT_PORT_INT
     fi
-    
-    uci set network.wg1=interface
-    uci set network.wg1.proto='wireguard'
-    uci set network.wg1.private_key=$WG_PRIVATE_KEY_INT
-    uci set network.wg1.listen_port='51820'
-    uci set network.wg1.addresses=$WG_IP
 
-    if ! uci show network | grep -q wireguard_wg1; then
-        uci add network wireguard_wg1
+    if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
+        read -r -p "Enter Jc value (from [Interface]):"$'\n' AWG_JC
+        read -r -p "Enter Jmin value (from [Interface]):"$'\n' AWG_JMIN
+        read -r -p "Enter Jmax value (from [Interface]):"$'\n' AWG_JMAX
+        read -r -p "Enter S1 value (from [Interface]):"$'\n' AWG_S1
+        read -r -p "Enter S2 value (from [Interface]):"$'\n' AWG_S2
+        read -r -p "Enter H1 value (from [Interface]):"$'\n' AWG_H1
+        read -r -p "Enter H2 value (from [Interface]):"$'\n' AWG_H2
+        read -r -p "Enter H3 value (from [Interface]):"$'\n' AWG_H3
+        read -r -p "Enter H4 value (from [Interface]):"$'\n' AWG_H4
     fi
-    uci set network.@wireguard_wg1[0]=wireguard_wg1
-    uci set network.@wireguard_wg1[0].name='wg1_client'
-    uci set network.@wireguard_wg1[0].public_key=$WG_PUBLIC_KEY_INT
-    uci set network.@wireguard_wg1[0].preshared_key=$WG_PRESHARED_KEY_INT
-    uci set network.@wireguard_wg1[0].route_allowed_ips='0'
-    uci set network.@wireguard_wg1[0].persistent_keepalive='25'
-    uci set network.@wireguard_wg1[0].endpoint_host=$WG_ENDPOINT_INT
-    uci set network.@wireguard_wg1[0].allowed_ips='0.0.0.0/0'
-    uci set network.@wireguard_wg1[0].endpoint_port=$WG_ENDPOINT_PORT_INT
+    
+    uci set network.${INTERFACE_NAME}=interface
+    uci set network.${INTERFACE_NAME}.proto=$PROTO
+    uci set network.${INTERFACE_NAME}.private_key=$WG_PRIVATE_KEY_INT
+    uci set network.${INTERFACE_NAME}.listen_port='51821'
+    uci set network.${INTERFACE_NAME}.addresses=$WG_IP
+
+    if [ "$PROTOCOL_NAME" = 'AmneziaWG' ]; then
+        uci set network.${INTERFACE_NAME}.awg_jc=$AWG_JC
+        uci set network.${INTERFACE_NAME}.awg_jmin=$AWG_JMIN
+        uci set network.${INTERFACE_NAME}.awg_jmax=$AWG_JMAX
+        uci set network.${INTERFACE_NAME}.awg_s1=$AWG_S1
+        uci set network.${INTERFACE_NAME}.awg_s2=$AWG_S2
+        uci set network.${INTERFACE_NAME}.awg_h1=$AWG_H1
+        uci set network.${INTERFACE_NAME}.awg_h2=$AWG_H2
+        uci set network.${INTERFACE_NAME}.awg_h3=$AWG_H3
+        uci set network.${INTERFACE_NAME}.awg_h4=$AWG_H4
+    fi
+
+    if ! uci show network | grep -q ${CONFIG_NAME}; then
+        uci add network ${CONFIG_NAME}
+    fi
+
+    uci set network.@${CONFIG_NAME}[0]=$CONFIG_NAME
+    uci set network.@${CONFIG_NAME}[0].name="${INTERFACE_NAME}_client"
+    uci set network.@${CONFIG_NAME}[0].public_key=$WG_PUBLIC_KEY_INT
+    uci set network.@${CONFIG_NAME}[0].preshared_key=$WG_PRESHARED_KEY_INT
+    uci set network.@${CONFIG_NAME}[0].route_allowed_ips='0'
+    uci set network.@${CONFIG_NAME}[0].persistent_keepalive='25'
+    uci set network.@${CONFIG_NAME}[0].endpoint_host=$WG_ENDPOINT_INT
+    uci set network.@${CONFIG_NAME}[0].allowed_ips='0.0.0.0/0'
+    uci set network.@${CONFIG_NAME}[0].endpoint_port=$WG_ENDPOINT_PORT_INT
     uci commit network
 
     grep -q "110 vpninternal" /etc/iproute2/rt_tables || echo '110 vpninternal' >> /etc/iproute2/rt_tables
@@ -811,17 +779,17 @@ add_internal_wg() {
         printf "\033[32;1mAdd route\033[0m\n"
         uci set network.vpn_route_internal=route
         uci set network.vpn_route_internal.name='vpninternal'
-        uci set network.vpn_route_internal.interface='wg1'
+        uci set network.vpn_route_internal.interface=$INTERFACE_NAME
         uci set network.vpn_route_internal.table='vpninternal'
         uci set network.vpn_route_internal.target='0.0.0.0/0'
         uci commit network
     fi
 
-    if ! uci show firewall | grep -q "@zone.*name='wg_internal'"; then
+    if ! uci show firewall | grep -q "@zone.*name='${ZONE_NAME}'"; then
         printf "\033[32;1mZone Create\033[0m\n"
         uci add firewall zone
-        uci set firewall.@zone[-1].name="wg_internal"
-        uci set firewall.@zone[-1].network='wg1'
+        uci set firewall.@zone[-1].name=$ZONE_NAME
+        uci set firewall.@zone[-1].network=$INTERFACE_NAME
         uci set firewall.@zone[-1].forward='REJECT'
         uci set firewall.@zone[-1].output='ACCEPT'
         uci set firewall.@zone[-1].input='REJECT'
@@ -831,12 +799,12 @@ add_internal_wg() {
         uci commit firewall
     fi
 
-    if ! uci show firewall | grep -q "@forwarding.*name='wg_internal'"; then
+    if ! uci show firewall | grep -q "@forwarding.*name='${ZONE_NAME}'"; then
         printf "\033[32;1mConfigured forwarding\033[0m\n"
         uci add firewall forwarding
         uci set firewall.@forwarding[-1]=forwarding
-        uci set firewall.@forwarding[-1].name="wg_internal-lan"
-        uci set firewall.@forwarding[-1].dest="wg_internal"
+        uci set firewall.@forwarding[-1].name="${ZONE_NAME}-lan"
+        uci set firewall.@forwarding[-1].dest=${ZONE_NAME}
         uci set firewall.@forwarding[-1].src='lan'
         uci set firewall.@forwarding[-1].family='ipv4'
         uci commit firewall
@@ -890,6 +858,94 @@ add_internal_wg() {
     service network restart
 
     exit 0
+}
+
+install_awg_packages() {
+    # Получение pkgarch с наибольшим приоритетом
+    PKGARCH=$(opkg print-architecture | awk 'BEGIN {max=0} {if ($3 > max) {max = $3; arch = $2}} END {print arch}')
+
+    TARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 1)
+    SUBTARGET=$(ubus call system board | jsonfilter -e '@.release.target' | cut -d '/' -f 2)
+    VERSION=$(ubus call system board | jsonfilter -e '@.release.version')
+    PKGPOSTFIX="_v${VERSION}_${PKGARCH}_${TARGET}_${SUBTARGET}.ipk"
+    BASE_URL="https://github.com/Slava-Shchipunov/awg-openwrt/releases/download/"
+
+    AWG_DIR="/tmp/amneziawg"
+    mkdir -p "$AWG_DIR"
+
+    if opkg list-installed | grep -q amneziawg-tools; then
+        echo "amneziawg-tools already installed"
+    else
+        AMNEZIAWG_TOOLS_FILENAME="amneziawg-tools${PKGPOSTFIX}"
+        DOWNLOAD_URL="${BASE_URL}v${VERSION}/${AMNEZIAWG_TOOLS_FILENAME}"
+        curl -L -o "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME" "$DOWNLOAD_URL"
+
+        if [ $? -eq 0 ]; then
+            echo "amneziawg-tools file downloaded successfully"
+        else
+            echo "Error downloading amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
+            exit 1
+        fi
+
+        opkg install "$AWG_DIR/$AMNEZIAWG_TOOLS_FILENAME"
+
+        if [ $? -eq 0 ]; then
+            echo "amneziawg-tools file downloaded successfully"
+        else
+            echo "Error installing amneziawg-tools. Please, install amneziawg-tools manually and run the script again"
+            exit 1
+        fi
+    fi
+    
+    if opkg list-installed | grep -q kmod-amneziawg; then
+        echo "kmod-amneziawg already installed"
+    else
+        KMOD_AMNEZIAWG_FILENAME="kmod-amneziawg${PKGPOSTFIX}"
+        DOWNLOAD_URL="${BASE_URL}v${VERSION}/${KMOD_AMNEZIAWG_FILENAME}"
+        curl -L -o "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
+
+        if [ $? -eq 0 ]; then
+            echo "kmod-amneziawg file downloaded successfully"
+        else
+            echo "Error downloading kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
+            exit 1
+        fi
+        
+        opkg install "$AWG_DIR/$KMOD_AMNEZIAWG_FILENAME"
+
+        if [ $? -eq 0 ]; then
+            echo "kmod-amneziawg file downloaded successfully"
+        else
+            echo "Error installing kmod-amneziawg. Please, install kmod-amneziawg manually and run the script again"
+            exit 1
+        fi
+    fi
+    
+    if opkg list-installed | grep -q luci-app-amneziawg; then
+        echo "luci-app-amneziawg already installed"
+    else
+        LUCI_APP_AMNEZIAWG_FILENAME="luci-app-amneziawg${PKGPOSTFIX}"
+        DOWNLOAD_URL="${BASE_URL}v${VERSION}/${LUCI_APP_AMNEZIAWG_FILENAME}"
+        curl -L -o "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME" "$DOWNLOAD_URL"
+
+        if [ $? -eq 0 ]; then
+            echo "luci-app-amneziawg file downloaded successfully"
+        else
+            echo "Error downloading luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
+            exit 1
+        fi
+
+        opkg install "$AWG_DIR/$LUCI_APP_AMNEZIAWG_FILENAME"
+
+        if [ $? -eq 0 ]; then
+            echo "luci-app-amneziawg file downloaded successfully"
+        else
+            echo "Error installing luci-app-amneziawg. Please, install luci-app-amneziawg manually and run the script again"
+            exit 1
+        fi
+    fi
+
+    rm -rf "$AWG_DIR"
 }
 
 # System Details
