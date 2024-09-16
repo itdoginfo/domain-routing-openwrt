@@ -181,21 +181,28 @@ if opkg list-installed | grep -q sing-box; then
 
     # Sing-box uci validation
     if uci show sing-box 2>&1 | grep -q "Parse error"; then
-        checkpoint_false "Sing-box UCI config. Check /etc/config/sing-box"
+        checkpoint_false "Sing-box: Error validation UCI configuration. Check /etc/config/sing-box"
     else
-        checkpoint_true "Sing-box UCI config"
-    fi    
+        checkpoint_true "Sing-box: UCI configuration has been successfully validated"
+    fi
 
-    # Check traffic
-    IP_EXTERNAL=$(curl -s ifconfig.me)
-    IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
+    if sing-box -c /etc/sing-box/config.json check >/dev/null 2>&1; then
+        checkpoint_true "Sing-box: Configuration has been successfully validated"
 
-    IP_VPN=$(curl --interface tun0 -s ifconfig.me)
+        # Check traffic
+        IP_EXTERNAL=$(curl -s ifconfig.me)
+        IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
 
-    if [ "$IP_EXTERNAL" != $IP_VPN ]; then
-        checkpoint_true "Sing-box. VPN IP: $IP_VPN"
+        IP_VPN=$(curl --interface tun0 -s ifconfig.me)
+
+        if [ "$IP_EXTERNAL" != $IP_VPN ]; then
+            checkpoint_true "Sing-box: VPN IP: $IP_VPN"
+        else
+            checkpoint_false "Sing-box: Your traffic is not routed through the VPN. Please check the configuration: https://cli.co/Badmn3K"
+        fi
     else
-        checkpoint_false "Sing-box. Check config: https://cli.co/Badmn3K"
+        checkpoint_false "Sing-box: Configuration validation error:"
+        sing-box -c /etc/sing-box/config.json check
     fi
 fi
 
