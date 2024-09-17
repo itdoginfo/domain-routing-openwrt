@@ -1,13 +1,17 @@
 #!/bin/sh
 
-TRANSLATIONS_FILE="./translations.sh"
+TRANSLATIONS_FILENAME="translations.sh"
+TRANSLATIONS_FILE_URL="https://raw.githubusercontent.com/vernette/domain-routing-openwrt/master/translations.sh"
 SCRIPTS_DIR="/etc/init.d"
+TMP_DIR="/tmp"
 HIVPN_SCRIPT_FILENAME="hivpn"
 GETDOMAINS_SCRIPT_FILENAME="getdomains"
+DUMP_FILENAME="dump.txt"
 
 HIVPN_SCRIPT_PATH="$SCRIPTS_DIR/$HIVPN_SCRIPT_FILENAME"
 GETDOMAINS_SCRIPT_PATH="$SCRIPTS_DIR/$GETDOMAINS_SCRIPT_FILENAME"
-DUMP_PATH="/tmp/dump.txt"
+DUMP_PATH="$TMP_DIR/$DUMP_FILENAME"
+TRANSLATIONS_FILE_PATH="$TMP_DIR/$TRANSLATIONS_FILENAME"
 
 COLOR_BOLD_BLUE="\033[34;1m"
 COLOR_BOLD_GREEN="\033[32;1m"
@@ -29,12 +33,12 @@ output_21() {
   fi
 }
 
-if [ ! -f "$TRANSLATIONS_FILE" ]; then
-  echo "File $TRANSLATIONS_FILE not found"
-  exit 1
+if [ ! -f "$TRANSLATIONS_FILE_PATH" ]; then
+  echo "File with translations $TRANSLATIONS_FILENAME not found, downloading it"
+  wget -qO "$TRANSLATIONS_FILE_PATH" "$TRANSLATIONS_FILE_URL"
 fi
 
-. "$TRANSLATIONS_FILE"
+. "$TRANSLATIONS_FILE_PATH"
 
 set_language_ru
 
