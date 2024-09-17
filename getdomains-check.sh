@@ -1,7 +1,7 @@
 #!/bin/sh
 
 TRANSLATIONS_FILENAME="translations.sh"
-TRANSLATIONS_FILE_URL="https://raw.githubusercontent.com/vernette/domain-routing-openwrt/master/translations.sh"
+TRANSLATIONS_FILE_URL="https://raw.githubusercontent.com/itdoginfo/domain-routing-openwrt/master/translations.sh"
 SCRIPTS_DIR="/etc/init.d"
 TMP_DIR="/tmp"
 HIVPN_SCRIPT_FILENAME="hivpn"
