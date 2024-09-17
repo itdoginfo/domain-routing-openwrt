@@ -19,6 +19,9 @@ COLOR_BOLD_RED="\033[31;1m"
 COLOR_BOLD_CYAN="\033[36;1m"
 COLOR_RESET="\033[0m"
 
+LANGUAGE="ru"
+SUPPORTED_LANGUAGES="ru, en"
+
 checkpoint_true() {
   printf "$COLOR_BOLD_GREEN[\342\234\223] $1$COLOR_RESET\n"
 }
@@ -40,7 +43,35 @@ fi
 
 . "$TRANSLATIONS_FILE_PATH"
 
-set_language_ru
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --lang)
+      LANGUAGE="$2"
+      shift 2
+      ;;
+    dump | dns)
+      COMMAND="$1"
+      shift 1
+      ;;
+    *)
+      printf "$COLOR_BOLD_RED[ERROR]$COLOR_RESET Unknown option: %s\n" "$1"
+      exit 1
+      ;;
+  esac
+done
+
+case $LANGUAGE in
+  ru)
+    set_language_ru
+    ;;
+  en)
+    set_language_en
+    ;;
+  *)
+    printf "$COLOR_BOLD_RED[ERROR]$COLOR_RESET Unsupported language '$LANGUAGE'. Supported languages: $SUPPORTED_LANGUAGES %s\n" "$1"
+    exit 1
+    ;;
+esac
 
 # System Details
 MODEL=$(cat /tmp/sysinfo/model)
@@ -375,6 +406,91 @@ if opkg list-installed | grep -q stubby; then
     checkpoint_false "$DNSMASQ_CONFIG_FOR_STUBBY_ERROR"
   fi
 fi
+
+case $COMMAND in
+  dump)
+    # Create dump
+    printf "\n$COLOR_BOLD_CYAN$DUMP_CREATION$COLOR_RESET\n"
+    date >$DUMP_PATH
+    $HIVPN start >>$DUMP_PATH 2>&1
+    $GETDOMAINS_SCRIPT_PATH start >>$DUMP_PATH 2>&1
+    uci show firewall >>$DUMP_PATH
+    uci show network | sed -r 's/(.*private_key=|.*preshared_key=|.*public_key=|.*endpoint_host=|.*wan.ipaddr=|.*wan.netmask=|.*wan.gateway=|.*wan.dns|.*.macaddr=).*/\1REMOVED/' >>$DUMP_PATH
+    printf "$DUMP_DETAILS\n"
+    ;;
+  dns)
+    # Check DNS
+    printf "\n$COLOR_BOLD_CYAN$DNS_CHECK$COLOR_RESET\n"
+    DNS_SERVERS="1.1.1.1 8.8.8.8 8.8.4.4"
+    DOH_DNS_SERVERS="cloudflare-dns.com 1.1.1.1 mozilla.cloudflare-dns.com security.cloudflare-dns.com"
+    DOMAINS="instagram.com facebook.com"
+
+    echo "1. $IS_DNS_TRAFFIC_BLOCKED"
+
+    for i in $DNS_SERVERS; do
+      if nslookup -type=a -timeout=2 -retry=1 itdog.info $i | grep -q "timed out"; then
+        checkpoint_false "$i"
+      else
+        checkpoint_true "$i"
+      fi
+    done
+
+    echo "2. $IS_DOH_AVAILABLE"
+
+    for i in $DOH_DNS_SERVERS; do
+      if curl --connect-timeout 5 -s -H "accept: application/dns-json" "https://$i/dns-query?name=itdog.info&type=A" | awk -F"data\":\"" '/data":"/{print $2}' | grep -q -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+        checkpoint_true "$i"
+      else
+        checkpoint_false "$i"
+      fi
+    done
+
+    echo "3. $RESPONSE_NOT_CONTAINS_127_0_0_8"
+
+    for i in $DOMAINS; do
+      if nslookup -type=a -timeout=2 -retry=1 $i | awk '/^Address: / {print $2}' | grep -q -E '127\.[0-9]{1,3}\.'; then
+        checkpoint_false "$i"
+      else
+        checkpoint_true "$i"
+      fi
+    done
+
+    echo "4. $ONE_IP_FOR_TWO_DOMAINS"
+
+    FIRSTIP=$(nslookup -type=a instagram.com | awk '/^Address: / {print $2}')
+    SECONDIP=$(nslookup -type=a facebook.com | awk '/^Address: / {print $2}')
+
+    if [ "$FIRSTIP" = "$SECONDIP" ]; then
+      checkpoint_false "$IPS_ARE_THE_SAME"
+    else
+      checkpoint_true "$IPS_ARE_DIFFERENT"
+    fi
+
+    echo "5. $RESPONSE_IS_NOT_BLANK"
+
+    for i in $DOMAINS; do
+      if nslookup -type=a -timeout=2 -retry=1 $i | awk '/^Address: / {print $2}' | grep -q -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'; then
+        checkpoint_true "$i"
+      else
+        checkpoint_false "$i"
+      fi
+    done
+
+    echo "6. $DNS_POISONING_CHECK"
+
+    DOHIP=$(curl -s -H "accept: application/dns-json" "https://1.1.1.1/dns-query?name=facebook.com&type=A" | awk -F"data\":\"" '/data":"/{print $2}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}')
+    OPENIP=$(nslookup -type=a -timeout=2 facebook.com 1.1.1.1 | awk '/^Address: / {print $2}')
+
+    if [ "$DOHIP" = "$OPENIP" ]; then
+      checkpoint_true "$IPS_ARE_THE_SAME"
+    else
+      checkpoint_false "$IPS_ARE_DIFFERENT"
+    fi
+    ;;
+  *)
+    exit 1
+    ;;
+esac
 
 # Create dump
 if [[ "$1" == dump ]]; then
