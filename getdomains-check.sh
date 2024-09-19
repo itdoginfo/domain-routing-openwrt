@@ -89,12 +89,12 @@ set_language_en() {
   SINGBOX_UCI_CONFIG_ERROR="$SINGBOX_PACKAGE Error validation UCI configuration. Check $SINGBOX_CONFIG_PATH"
   SINGBOX_CONFIG_OK="$SINGBOX_PACKAGE configuration has been successfully validated"
   SINGBOX_CONFIG_ERROR="$SINGBOX_PACKAGE configuration validation error"
-  SINGBOX_WORKING="$SINGBOX_PACKAGE works. VPN IP: $IP_VPN"
+  SINGBOX_WORKING_TEMPLATE="$SINGBOX_PACKAGE works. VPN IP: %s"
   SINGBOX_ROUTING_DOESNT_WORK="$SINGBOX_PACKAGE: Your traffic is not routed through the VPN. Check configuration: https://cli.co/Badmn3K"
   TUN2SOCKS_INSTALLED="$TUN2SOCKS_PACKAGE $INSTALLED"
   TUN2SOCKS_ROUTING_TABLE_EXISTS="$TUN2SOCKS_PACKAGE routing table $EXISTS"
   TUN2SOCKS_ROUTING_TABLE_DOESNT_EXIST="$TUN2SOCKS_PACKAGE routing table $DOESNT_EXIST. Try: service network restart. Details: https://cli.co/n7xAbc1"
-  TUN2SOCKS_WORKING="$TUN2SOCKS_PACKAGE works. VPN IP: $IP_VPN"
+  TUN2SOCKS_WORKING_TEMPLATE="$TUN2SOCKS_PACKAGE works. VPN IP: %s"
   TUN2SOCKS_ROUTING_DOESNT_WORK="$TUN2SOCKS_PACKAGE: Your traffic is not routed through the VPN. Check configuration: https://cli.co/VNZISEM"
   VPN_DOMAINS_SET_EXISTS="vpn_domains set $EXISTS"
   VPN_DOMAINS_SET_DOESNT_EXIST="vpn_domains set $DOESNT_EXIST"
@@ -192,12 +192,12 @@ set_language_ru() {
   SINGBOX_UCI_CONFIG_ERROR="Ошибка валидации UCI конфигурации для $SINGBOX_PACKAGE"
   SINGBOX_CONFIG_OK="Конфигурация $SINGBOX_PACKAGE успешно проверена"
   SINGBOX_CONFIG_ERROR="Ошибка валидации конфигурации $SINGBOX_PACKAGE"
-  SINGBOX_WORKING="$SINGBOX_PACKAGE работает. VPN IP: $IP_VPN"
+  SINGBOX_WORKING_TEMPLATE="$SINGBOX_PACKAGE работает. VPN IP: %s"
   SINGBOX_ROUTING_DOESNT_WORK="$SINGBOX_PACKAGE: Ваш трафик не идёт через VPN. Проверьте конфигурацию: https://cli.co/Badmn3K"
   TUN2SOCKS_INSTALLED="$TUN2SOCKS_PACKAGE $INSTALLED"
   TUN2SOCKS_ROUTING_TABLE_EXISTS="Таблица маршрутизации $TUN2SOCKS_PROTOCOL $EXISTS"
   TUN2SOCKS_ROUTING_TABLE_DOESNT_EXIST="Таблица маршрутизации $TUN2SOCKS_PROTOCOL $DOESNT_EXIST. Подробности: https://cli.co/n7xAbc1"
-  TUN2SOCKS_WORKING="$TUN2SOCKS_PACKAGE работает. VPN IP: $IP_VPN"
+  TUN2SOCKS_WORKING_TEMPLATE="$TUN2SOCKS_PACKAGE работает. VPN IP: %s"
   TUN2SOCKS_ROUTING_DOESNT_WORK="$TUN2SOCKS_PACKAGE: Ваш трафик не идёт через VPN. Проверьте конфигурацию: https://cli.co/VNZISEM"
   VPN_DOMAINS_SET_EXISTS="vpn_domains set $EXISTS"
   VPN_DOMAINS_SET_DOESNT_EXIST="vpn_domains set $DOESNT_EXIST"
@@ -258,6 +258,12 @@ output_21() {
   if [ "$VERSION_ID" -eq 21 ]; then
     echo "$UNSUPPORTED_OPENWRT"
   fi
+}
+
+update_vpn_ip() {
+  local template="$1"
+  local ip="$2"
+  echo "$(printf "$template" "$ip")"
 }
 
 while [ $# -gt 0 ]; do
@@ -455,6 +461,8 @@ if opkg list-installed | grep -q sing-box; then
 
     IP_VPN=$(curl --interface tun0 -s ifconfig.me)
 
+    SINGBOX_WORKING=$(update_vpn_ip "$SINGBOX_WORKING_TEMPLATE" "$IP_VPN")
+
     if [ "$IP_EXTERNAL" != $IP_VPN ]; then
       checkpoint_true "$SINGBOX_WORKING"
     else
@@ -480,6 +488,8 @@ if which tun2socks | grep -q tun2socks; then
   IFCONFIG=$(nslookup -type=a ifconfig.me | awk '/^Address: / {print $2}')
 
   IP_VPN=$(curl --interface tun0 -s ifconfig.me)
+
+  TUN2SOCKS_WORKING=$(update_vpn_ip "$TUN2SOCKS_WORKING_TEMPLATE" "$IP_VPN")
 
   if [ "$IP_EXTERNAL" != $IP_VPN ]; then
     checkpoint_true "$TUN2SOCKS_WORKING"
