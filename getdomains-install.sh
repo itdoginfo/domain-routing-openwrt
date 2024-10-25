@@ -9,25 +9,27 @@ check_repo() {
 
 route_vpn () {
     if [ "$TUNNEL" == wg ]; then
-cat << EOF > /etc/hotplug.d/net/30-vpnroute
+cat << EOF > /etc/hotplug.d/iface/30-vpnroute
 #!/bin/sh
 
 ip route add table vpn default dev wg0
 EOF
     elif [ "$TUNNEL" == awg ]; then
-cat << EOF > /etc/hotplug.d/net/30-vpnroute
+cat << EOF > /etc/hotplug.d/iface/30-vpnroute
 #!/bin/sh
 
 ip route add table vpn default dev awg0
 EOF
     elif [ "$TUNNEL" == singbox ] || [ "$TUNNEL" == ovpn ] || [ "$TUNNEL" == tun2socks ]; then
-cat << EOF > /etc/hotplug.d/net/30-vpnroute
+cat << EOF > /etc/hotplug.d/iface/30-vpnroute
 #!/bin/sh
 
 sleep 10
 ip route add table vpn default dev tun0
 EOF
     fi
+
+    cp /etc/hotplug.d/iface/30-vpnroute /etc/hotplug.d/net/30-vpnroute
 }
 
 add_mark() {
