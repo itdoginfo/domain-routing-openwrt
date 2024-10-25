@@ -67,7 +67,7 @@ uci commit network
 
 echo "Проверяем Dnsmasq"
 if uci show dhcp | grep -q ipset; then
-    echo "В dnsmasq (/etc/config/dhcp) заданы домены. Нужные из их сохраните, остальные удалите вместе с ipset"
+    echo "В dnsmasq (/etc/config/dhcp) заданы домены. Нужные из них сохраните, остальные удалите вместе с ipset"
 fi
 
 echo "Все туннели, прокси, зоны и forwarding к ним оставляем на месте, они вам не помешают и скорее пригодятся"
