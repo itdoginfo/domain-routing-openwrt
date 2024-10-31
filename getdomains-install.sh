@@ -564,19 +564,21 @@ add_dns_resolver() {
 }
 
 add_packages() {
-    if opkg list-installed | grep -q "curl -"; then
-        printf "\033[32;1mCurl already installed\033[0m\n"
-    else
-        printf "\033[32;1mInstall curl\033[0m\n"
-        opkg install curl
-    fi
-
-    if opkg list-installed | grep -q nano; then
-        printf "\033[32;1mNano already installed\033[0m\n"
-    else
-        printf "\033[32;1mInstall nano\033[0m\n"
-        opkg install nano
-    fi
+    for package in curl nano; do
+        if opkg list-installed | grep -q "^$package "; then
+            printf "\033[32;1m$package уже установлен\033[0m\n"
+        else
+            printf "\033[32;1mУстанавливаем $package...\033[0m\n"
+            opkg install "$package"
+            
+            if "$package" --version >/dev/null 2>&1; then
+                printf "\033[32;1m$package успешно установлен и доступен\033[0m\n"
+            else
+                printf "\033[31;1mОшибка: $package не удалось установить\033[0m\n"
+                exit 1
+            fi
+        fi
+    done
 }
 
 add_getdomains() {
