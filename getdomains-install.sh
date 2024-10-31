@@ -566,15 +566,15 @@ add_dns_resolver() {
 add_packages() {
     for package in curl nano; do
         if opkg list-installed | grep -q "^$package "; then
-            printf "\033[32;1m$package уже установлен\033[0m\n"
+            printf "\033[32;1m$package already installed\033[0m\n"
         else
-            printf "\033[32;1mУстанавливаем $package...\033[0m\n"
+            printf "\033[32;1mInstalling $package...\033[0m\n"
             opkg install "$package"
             
             if "$package" --version >/dev/null 2>&1; then
-                printf "\033[32;1m$package успешно установлен и доступен\033[0m\n"
+                printf "\033[32;1m$package was successfully installed and available\033[0m\n"
             else
-                printf "\033[31;1mОшибка: $package не удалось установить\033[0m\n"
+                printf "\033[31;1mError: failed to install $package\033[0m\n"
                 exit 1
             fi
         fi
