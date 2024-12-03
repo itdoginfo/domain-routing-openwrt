@@ -6,6 +6,10 @@
     shell: opkg list-installed | grep dnsmasq-full | awk '{print $3}'
     register: dnsmasqfull_version
 
+  - name: Check confdir option
+    shell: uci get dhcp.@dnsmasq[0].confdir
+    register: dnsmasq_confdir
+
   - name: debug
     debug:
       var: ansible_distribution_major_version
@@ -62,6 +66,14 @@
     shell: opkg update && cd /tmp/ && opkg download dnsmasq-full && opkg remove dnsmasq && opkg install dnsmasq-full --cache /tmp/ && [ -f /etc/config/dhcp-opkg ] && cp etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
     when: ansible_distribution_major_version >= "23" and list_domains and not dnsmasqfull_version.stdout
     ignore_errors: true
+
+  - name: set confdir for dnsmasq
+    uci: 
+      command: set
+      key: dhcp.@dnsmasq[0]
+      value:
+        confdir: "/tmp/dnsmasq.d"
+    when: dnsmasq_confdir.stdout != "/tmp/dnsmasq.d"
 
 # Getdomains script configure
       

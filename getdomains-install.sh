@@ -326,6 +326,15 @@ dnsmasqfull() {
 fi
 }
 
+dnsmasqconfdir() {
+    if uci get dhcp.@dnsmasq[0].confdir | grep -q /tmp/dnsmasq.d; then
+        printf "\033[32;1mconfdir alreadt set\033[0m\n"
+    else
+        printf "\033[32;1mSetting confdir\033[0m\n"
+        uci set dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
+        uci commit dhcp
+fi
+}
 remove_forwarding() {
     if [ ! -z "$forward_id" ]; then
         while uci -q delete firewall.@forwarding[$forward_id]; do :; done
