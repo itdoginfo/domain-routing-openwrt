@@ -9,6 +9,7 @@
   - name: Check confdir option
     shell: uci get dhcp.@dnsmasq[0].confdir
     register: dnsmasq_confdir
+    ignore_errors: true
 
   - name: debug
     debug:
