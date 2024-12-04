@@ -995,6 +995,8 @@ add_set
 
 dnsmasqfull
 
+dnsmasqconfdir
+
 add_dns_resolver
 
 add_getdomains
