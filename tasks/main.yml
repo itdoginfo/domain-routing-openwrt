@@ -11,6 +11,10 @@
     register: dnsmasq_confdir
     ignore_errors: true
 
+  - name: Get openwrt major release
+    shell: cat /etc/openwrt_release | grep -Eo [0-9]{2}[.][0-9]{2}[.][0-9]* | cut -d '.' -f 1 | tail -n 1
+    register: openwrt_major_release
+
   - name: debug
     debug:
       var: ansible_distribution_major_version
@@ -74,7 +78,7 @@
       key: dhcp.@dnsmasq[0]
       value:
         confdir: "/tmp/dnsmasq.d"
-    when: dnsmasq_confdir.stdout != "/tmp/dnsmasq.d"
+    when: dnsmasq_confdir.stdout != "/tmp/dnsmasq.d" and openwrt_major_release >= 24
 
 # Getdomains script configure
       
