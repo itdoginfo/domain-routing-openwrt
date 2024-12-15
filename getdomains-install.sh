@@ -323,7 +323,20 @@ dnsmasqfull() {
         opkg remove dnsmasq && opkg install dnsmasq-full --cache /tmp/
 
         [ -f /etc/config/dhcp-opkg ] && cp /etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
-fi
+    fi
+}
+
+dnsmasqconfdir() {
+    openwrt_release=$(cat /etc/openwrt_release | grep -Eo [0-9]{2}[.][0-9]{2}[.][0-9]* | cut -d '.' -f 1 | tail -n 1)
+    if [ $openwrt_release -ge 24 ]; then
+        if uci get dhcp.@dnsmasq[0].confdir | grep -q /tmp/dnsmasq.d; then
+            printf "\033[32;1mconfdir alreadt set\033[0m\n"
+        else
+            printf "\033[32;1mSetting confdir\033[0m\n"
+            uci set dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
+            uci commit dhcp
+        fi
+    fi
 }
 
 remove_forwarding() {
@@ -985,6 +998,8 @@ show_manual
 add_set
 
 dnsmasqfull
+
+dnsmasqconfdir
 
 add_dns_resolver
 
