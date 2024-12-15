@@ -325,12 +325,11 @@ dnsmasqfull() {
         [ -f /etc/config/dhcp-opkg ] && cp /etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
     fi
 }
-
+s
 dnsmasqconfdir() {
-    openwrt_release=$(cat /etc/openwrt_release | grep -Eo [0-9]{2}[.][0-9]{2}[.][0-9]* | cut -d '.' -f 1 | tail -n 1)
-    if [ $openwrt_release -ge 24 ]; then
+    if [ $VERSION_ID -ge 24 ]; then
         if uci get dhcp.@dnsmasq[0].confdir | grep -q /tmp/dnsmasq.d; then
-            printf "\033[32;1mconfdir alreadt set\033[0m\n"
+            printf "\033[32;1mconfdir already set\033[0m\n"
         else
             printf "\033[32;1mSetting confdir\033[0m\n"
             uci set dhcp.@dnsmasq[0].confdir='/tmp/dnsmasq.d'
@@ -973,8 +972,8 @@ printf "\033[34;1mVersion: $OPENWRT_RELEASE\033[0m\n"
 
 VERSION_ID=$(echo $VERSION | awk -F. '{print $1}')
 
-if [ "$VERSION_ID" -ne 23 ]; then
-    printf "\033[31;1mScript only support OpenWrt 23.05\033[0m\n"
+if [ "$VERSION_ID" -ne 23 ] && [ "$VERSION_ID" -ne 24 ]; then
+    printf "\033[31;1mScript only support OpenWrt 23.05 and 24.10\033[0m\n"
     echo "For OpenWrt 21.02 and 22.03 you can:"
     echo "1) Use ansible https://github.com/itdoginfo/domain-routing-openwrt"
     echo "2) Configure manually. Old manual: https://itdog.info/tochechnaya-marshrutizaciya-na-routere-s-openwrt-wireguard-i-dnscrypt/"
