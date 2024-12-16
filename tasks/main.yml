@@ -78,7 +78,9 @@
       key: dhcp.@dnsmasq[0]
       value:
         confdir: "/tmp/dnsmasq.d"
-    when: dnsmasq_confdir.stdout != "/tmp/dnsmasq.d" and openwrt_major_release >= 24
+    when: ansible_distribution_major_version >= 24
+    notify:
+      - Restart dnsmasq  
 
 # Getdomains script configure
       
@@ -671,6 +673,13 @@
       config: firewall
     notify:
       - Restart firewall
+
+    - name: uci commit dhcp
+    uci:
+      command: commit
+      config: dhcp
+    notify:
+      - Restart dnsmasq
 
   - name: uci commit network
     uci:
