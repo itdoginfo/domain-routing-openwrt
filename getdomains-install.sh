@@ -325,7 +325,7 @@ dnsmasqfull() {
         [ -f /etc/config/dhcp-opkg ] && cp /etc/config/dhcp /etc/config/dhcp-old && mv /etc/config/dhcp-opkg /etc/config/dhcp
     fi
 }
-s
+
 dnsmasqconfdir() {
     if [ $VERSION_ID -ge 24 ]; then
         if uci get dhcp.@dnsmasq[0].confdir | grep -q /tmp/dnsmasq.d; then
